@@ -84,45 +84,28 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto justify-between md:justify-end">
-          <button
-            onClick={() => {
-              if (!gradePublished) {
-                alert('🔒 የዚህ ሴሚስተር ውጤትና ትራንስክሪፕት በዋና አድሚን፣ በዋና ዲን ወይም በሪጅስተራል በይፋ አልተለቀቀም። እባክዎን ይፋ እስኪደረግ ይታገሱ።');
-                return;
-              }
-              onOpenTranscript();
-            }}
-            disabled={!gradePublished}
-            className={`inline-flex items-center gap-1.5 text-xs px-3.5 py-2.5 rounded-xl font-bold shadow-sm transition-all ${
-              gradePublished
-                ? 'bg-slate-900 hover:bg-slate-800 text-white cursor-pointer'
-                : 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300'
-            }`}
-            title={gradePublished ? 'የሴሚስተር ትራንስክሪፕት ይመልከቱ' : '🔒 ውጤት በይፋ እስኪለቀቅ ድረስ ትራንስክሪፕት ተቆልፏል'}
-          >
-            <Printer className={`w-4 h-4 ${gradePublished ? 'text-amber-400' : 'text-slate-400'}`} />
-            <span>{gradePublished ? 'የሴሚስተር ትራንስክሪፕት' : '🔒 ትራንስክሪፕት (ተቆልፏል)'}</span>
-          </button>
+          {/* Transcript buttons are COMPLETELY HIDDEN from students unless grade release is officially authorized */}
+          {gradePublished && (
+            <>
+              <button
+                onClick={onOpenTranscript}
+                className="inline-flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs px-3.5 py-2.5 rounded-xl font-bold shadow-sm transition-all cursor-pointer"
+                title="የሴሚስተር ትራንስክሪፕት ይመልከቱ"
+              >
+                <Printer className="w-4 h-4 text-amber-400" />
+                <span>የሴሚስተር ትራንስክሪፕት</span>
+              </button>
 
-          <button
-            onClick={() => {
-              if (!gradePublished) {
-                alert('🔒 የዚህ ሴሚስተር ውጤትና ትራንስክሪፕት በዋና አድሚን፣ በዋና ዲን ወይም በሪጅስተራል በይፋ አልተለቀቀም። እባክዎን ይፋ እስኪደረግ ይታገሱ።');
-                return;
-              }
-              setShowGraduationTranscript(true);
-            }}
-            disabled={!gradePublished}
-            className={`inline-flex items-center gap-1.5 text-xs px-3.5 py-2.5 rounded-xl font-bold shadow-sm transition-all ${
-              gradePublished
-                ? 'bg-emerald-800 hover:bg-emerald-900 text-white cursor-pointer'
-                : 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300'
-            }`}
-            title={gradePublished ? 'የተማሩበትን ሙሉ ትምህርት የምረቃ ትራንስክሪፕት በአንድ ላይ ይመልከቱ' : '🔒 ውጤት በይፋ እስኪለቀቅ ድረስ ትራንስክሪፕት ተቆልፏል'}
-          >
-            <GraduationCap className={`w-4 h-4 ${gradePublished ? 'text-amber-300' : 'text-slate-400'}`} />
-            <span>{gradePublished ? 'ሙሉ የምረቃ ትራንስክሪፕት' : '🔒 የምረቃ ትራንስክሪፕት (ተቆልፏል)'}</span>
-          </button>
+              <button
+                onClick={() => setShowGraduationTranscript(true)}
+                className="inline-flex items-center gap-1.5 bg-emerald-800 hover:bg-emerald-900 text-white text-xs px-3.5 py-2.5 rounded-xl font-bold shadow-sm transition-all cursor-pointer"
+                title="የተማሩበትን ሙሉ ትምህርት የምረቃ ትራንስክሪፕት በአንድ ላይ ይመልከቱ"
+              >
+                <GraduationCap className="w-4 h-4 text-amber-300" />
+                <span>ሙሉ የምረቃ ትራንስክሪፕት</span>
+              </button>
+            </>
+          )}
 
           <div className="bg-gradient-to-br from-amber-50 to-amber-100/70 border border-amber-300 rounded-2xl p-3 text-center min-w-[120px] shadow-xs">
             <span className="block text-[10px] uppercase font-bold text-amber-800 tracking-wider">
