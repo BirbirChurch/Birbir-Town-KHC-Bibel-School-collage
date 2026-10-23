@@ -14,6 +14,7 @@ import { StudentModal } from './components/StudentModal.tsx';
 import { PhotoModal } from './components/PhotoModal.tsx';
 import { FirebaseStatusModal } from './components/FirebaseStatusModal.tsx';
 import { DailyVerseBanner } from './components/DailyVerseBanner.tsx';
+import { HistoricalArchiveModal } from './components/HistoricalArchiveModal.tsx';
 import { firebaseConfig } from './firebase.ts';
 import { getStoredChurchLogo, saveChurchLogo, DEFAULT_CHURCH_LOGO, loadPersistentChurchLogo } from './assets/logo.ts';
 import { loadPersistentOfficialConfig } from './components/OfficialSignaturesManager.tsx';
@@ -199,6 +200,7 @@ export default function App() {
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
   const [photoModalStudentUid, setPhotoModalStudentUid] = useState<string | null>(null);
   const [transcriptStudent, setTranscriptStudent] = useState<Student | null>(null);
+  const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false);
 
   // Church official emblem / logo state (supports default and custom uploaded logo)
   const [churchLogo, setChurchLogo] = useState<string>(getStoredChurchLogo);
@@ -945,6 +947,9 @@ export default function App() {
         isTestingFirebase={isTestingFirebase}
         onOpenFirebaseModal={() => setIsFirebaseModalOpen(true)}
         churchLogo={churchLogo}
+        currentYear={currentYear}
+        currentSemester={currentSemester}
+        onOpenArchiveModal={() => setIsArchiveModalOpen(true)}
       />
 
       {/* Main Body */}
@@ -1059,6 +1064,8 @@ export default function App() {
                 currentYear={currentYear}
                 currentSemester={currentSemester}
                 availableYears={availableYears}
+                gradePublished={gradePublished}
+                onToggleGradePublication={handleToggleGradePublication}
                 onOpenAddStudent={() => setIsStudentModalOpen(true)}
                 onOpenPhotoModal={(sid) => setPhotoModalStudentUid(sid)}
                 onSelectPrintTranscript={(s) => setTranscriptStudent(s)}
@@ -1180,6 +1187,23 @@ export default function App() {
           onPushAllToFirebase={handlePushAllToFirebase}
           onPullFromFirebase={handlePullFromFirebase}
           onClose={() => setIsFirebaseModalOpen(false)}
+        />
+      )}
+
+      {/* Historical Search & Academic Archive Modal */}
+      {isArchiveModalOpen && (
+        <HistoricalArchiveModal
+          students={students}
+          courses={courses}
+          grades={grades}
+          teachers={teachers}
+          availableYears={availableYears}
+          currentYear={currentYear}
+          currentSemester={currentSemester}
+          churchLogo={churchLogo}
+          officialConfig={officialConfig}
+          onClose={() => setIsArchiveModalOpen(false)}
+          onOpenStudentTranscript={(student) => setTranscriptStudent(student)}
         />
       )}
     </div>

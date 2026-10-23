@@ -14,7 +14,9 @@ import {
   CheckCircle2,
   Upload,
   Save,
-  GraduationCap
+  GraduationCap,
+  EyeOff,
+  Lock
 } from 'lucide-react';
 import { Course, GradeBreakdown, OfficialSignaturesConfig, ProgramType, Student } from '../types.ts';
 import { calculateGradeDetails, calculateStudentGPA, getCourseAssessmentItems, getCriterionScore, getEffectiveGradeValues, getGradeKey } from '../utils/gradeCalculations.ts';
@@ -33,6 +35,8 @@ interface RegistrarPortalProps {
   currentYear: string;
   currentSemester: string;
   availableYears?: string[];
+  gradePublished?: boolean;
+  onToggleGradePublication?: () => void;
   onOpenAddStudent: () => void;
   onOpenPhotoModal: (studentUid: string) => void;
   onSelectPrintTranscript: (student: Student) => void;
@@ -53,6 +57,8 @@ export const RegistrarPortal: React.FC<RegistrarPortalProps> = ({
   currentYear,
   currentSemester,
   availableYears,
+  gradePublished,
+  onToggleGradePublication,
   onOpenAddStudent,
   onOpenPhotoModal,
   onSelectPrintTranscript,
@@ -264,6 +270,31 @@ export const RegistrarPortal: React.FC<RegistrarPortalProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
+          {onToggleGradePublication && (
+            <button
+              type="button"
+              onClick={onToggleGradePublication}
+              className={`inline-flex items-center gap-1.5 text-xs px-3.5 py-2.5 rounded-xl font-bold shadow-md transition-all cursor-pointer ${
+                gradePublished
+                  ? 'bg-emerald-700 hover:bg-emerald-800 text-white'
+                  : 'bg-amber-500 hover:bg-amber-600 text-slate-950'
+              }`}
+              title="ውጤት ለተማሪዎች ይታይ/ይሰወር የሚለውን የሬጅስተራል ፈቃድ ይቆጣጠሩ"
+            >
+              {gradePublished ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+                  <span>ውጤት ለተማሪዎች ተለቋል (Grade Released)</span>
+                </>
+              ) : (
+                <>
+                  <EyeOff className="w-4 h-4 text-slate-950" />
+                  <span>ውጤት ለተማሪዎች ተቆልፏል (Pending Release)</span>
+                </>
+              )}
+            </button>
+          )}
+
           <button
             onClick={onOpenAddStudent}
             className="bg-emerald-800 hover:bg-emerald-900 text-white text-xs sm:text-sm px-4 py-2.5 rounded-xl font-bold shadow-md transition-all flex items-center gap-2 cursor-pointer"

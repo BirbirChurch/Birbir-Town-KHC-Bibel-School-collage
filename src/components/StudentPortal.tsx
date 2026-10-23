@@ -85,20 +85,43 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
 
         <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto justify-between md:justify-end">
           <button
-            onClick={onOpenTranscript}
-            className="inline-flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs px-3.5 py-2.5 rounded-xl font-bold shadow-sm transition-all cursor-pointer"
+            onClick={() => {
+              if (!gradePublished) {
+                alert('🔒 የዚህ ሴሚስተር ውጤትና ትራንስክሪፕት በዋና አድሚን፣ በዋና ዲን ወይም በሪጅስተራል በይፋ አልተለቀቀም። እባክዎን ይፋ እስኪደረግ ይታገሱ።');
+                return;
+              }
+              onOpenTranscript();
+            }}
+            disabled={!gradePublished}
+            className={`inline-flex items-center gap-1.5 text-xs px-3.5 py-2.5 rounded-xl font-bold shadow-sm transition-all ${
+              gradePublished
+                ? 'bg-slate-900 hover:bg-slate-800 text-white cursor-pointer'
+                : 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300'
+            }`}
+            title={gradePublished ? 'የሴሚስተር ትራንስክሪፕት ይመልከቱ' : '🔒 ውጤት በይፋ እስኪለቀቅ ድረስ ትራንስክሪፕት ተቆልፏል'}
           >
-            <Printer className="w-4 h-4 text-amber-400" />
-            <span>የሴሚስተር ትራንስክሪፕት</span>
+            <Printer className={`w-4 h-4 ${gradePublished ? 'text-amber-400' : 'text-slate-400'}`} />
+            <span>{gradePublished ? 'የሴሚስተር ትራንስክሪፕት' : '🔒 ትራንስክሪፕት (ተቆልፏል)'}</span>
           </button>
 
           <button
-            onClick={() => setShowGraduationTranscript(true)}
-            className="inline-flex items-center gap-1.5 bg-emerald-800 hover:bg-emerald-900 text-white text-xs px-3.5 py-2.5 rounded-xl font-bold shadow-sm transition-all cursor-pointer"
-            title="የተማሩበትን ሙሉ ትምህርት የምረቃ ትራንስክሪፕት በአንድ ላይ ይመልከቱ"
+            onClick={() => {
+              if (!gradePublished) {
+                alert('🔒 የዚህ ሴሚስተር ውጤትና ትራንስክሪፕት በዋና አድሚን፣ በዋና ዲን ወይም በሪጅስተራል በይፋ አልተለቀቀም። እባክዎን ይፋ እስኪደረግ ይታገሱ።');
+                return;
+              }
+              setShowGraduationTranscript(true);
+            }}
+            disabled={!gradePublished}
+            className={`inline-flex items-center gap-1.5 text-xs px-3.5 py-2.5 rounded-xl font-bold shadow-sm transition-all ${
+              gradePublished
+                ? 'bg-emerald-800 hover:bg-emerald-900 text-white cursor-pointer'
+                : 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300'
+            }`}
+            title={gradePublished ? 'የተማሩበትን ሙሉ ትምህርት የምረቃ ትራንስክሪፕት በአንድ ላይ ይመልከቱ' : '🔒 ውጤት በይፋ እስኪለቀቅ ድረስ ትራንስክሪፕት ተቆልፏል'}
           >
-            <GraduationCap className="w-4 h-4 text-amber-300" />
-            <span>ሙሉ የምረቃ ትራንስክሪፕት</span>
+            <GraduationCap className={`w-4 h-4 ${gradePublished ? 'text-amber-300' : 'text-slate-400'}`} />
+            <span>{gradePublished ? 'ሙሉ የምረቃ ትራንስክሪፕት' : '🔒 የምረቃ ትራንስክሪፕት (ተቆልፏል)'}</span>
           </button>
 
           <div className="bg-gradient-to-br from-amber-50 to-amber-100/70 border border-amber-300 rounded-2xl p-3 text-center min-w-[120px] shadow-xs">
@@ -106,20 +129,23 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
               የሴሚስተሩ GPA
             </span>
             <span className="text-2xl sm:text-3xl font-black text-amber-950 font-mono">
-              {gradePublished ? gpa : '***'}
+              {gradePublished ? gpa : '🔒 ***'}
             </span>
           </div>
         </div>
       </div>
 
-      {/* Grade status alert when pending */}
+      {/* Grade status alert when pending official authorization */}
       {!gradePublished && (
-        <div className="bg-amber-50 border-l-4 border-amber-500 text-amber-900 p-4 rounded-xl text-xs flex items-start gap-2.5">
-          <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="font-bold">ውጤቶች በዲን አልተረጋገጡም (Pending Dean Approval)</p>
-            <p className="mt-0.5 text-amber-800">
-              የዚህ ሴሚስተር ውጤቶች በዋና ዲን ተረጋግጠው ይፋ እስኪሆኑ ድረስ ለጊዜው ተሰውረዋል።
+        <div className="bg-rose-50 border-2 border-rose-300 text-rose-950 p-4 rounded-2xl text-xs flex items-start gap-3 shadow-xs">
+          <AlertTriangle className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="font-extrabold text-sm text-rose-900 flex items-center gap-1.5">
+              <span>🔒 የዚህ ሴሚስተር ውጤትና ትራንስክሪፕት ለተማሪዎች አልተለቀቀም</span>
+              <span className="bg-rose-200 text-rose-950 px-2 py-0.5 rounded text-[10px] font-mono">PENDING RELEASE</span>
+            </p>
+            <p className="text-rose-800 font-medium">
+              የዚህ ሴሚስተር ውጤትና የትራንስክሪፕት ሰነዶች በኃላፊነት ባላቸው አካላት (በዋና አድሚን፣ በዋና ዲን እና በሪጅስተራል) ተረጋግጠው በይፋ እስኪፈቀዱ ድረስ ለተማሪዎች ተሰውረው ይቆያሉ። እባክዎን ይፋ እስኪደረግ ይታገሱ።
             </p>
           </div>
         </div>

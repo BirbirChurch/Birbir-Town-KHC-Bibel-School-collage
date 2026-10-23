@@ -1,5 +1,5 @@
 import React from 'react';
-import { Key, LogOut, Shield, User, Award, GraduationCap, Lock, Cloud, CheckCircle2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Key, LogOut, Shield, User, Award, GraduationCap, Lock, Cloud, CheckCircle2, AlertTriangle, RefreshCw, History } from 'lucide-react';
 import { CurrentUser } from '../types.ts';
 import { FirebaseConnectionReport } from '../services/firebaseSync.ts';
 import { CHURCH_LOGO } from '../assets/logo.ts';
@@ -17,6 +17,7 @@ interface HeaderProps {
   churchLogo?: string;
   currentYear?: string;
   currentSemester?: string;
+  onOpenArchiveModal?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -31,7 +32,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenFirebaseModal,
   churchLogo,
   currentYear = '2019',
-  currentSemester = '1'
+  currentSemester = '1',
+  onOpenArchiveModal
 }) => {
   const getRoleAmharicName = (role: string) => {
     switch (role) {
@@ -88,6 +90,17 @@ export const Header: React.FC<HeaderProps> = ({
                       {currentUser.role === 'TEACHER' ? 'መምህር (የተፈቀደላቸው)' : currentUser.name}
                     </span>
                   </div>
+
+                  {onOpenArchiveModal && (
+                    <button
+                      onClick={onOpenArchiveModal}
+                      className="inline-flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs px-3 py-1.5 rounded-lg shadow-sm transition-colors cursor-pointer"
+                      title="የቀደሙ ሥራዎችና የተማሪዎች ውጤት ማህደር መፈለጊያ"
+                    >
+                      <History className="w-3.5 h-3.5 text-slate-950" />
+                      <span>🔍 የቀደሙ ሥራዎችና ማህደር</span>
+                    </button>
+                  )}
 
                   {/* Every user (admin, dean, registrar, teacher, student) can change their own password! */}
                   <button

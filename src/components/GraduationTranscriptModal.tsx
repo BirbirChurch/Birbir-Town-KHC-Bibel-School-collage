@@ -157,6 +157,7 @@ export const GraduationTranscriptModal: React.FC<GraduationTranscriptModalProps>
   }, [curriculum, allCourses, grades, student, currentYear, currentSemester]);
 
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [isBwMode, setIsBwMode] = useState(false);
 
   const handleDownloadPdf = async () => {
     setIsExportingPdf(true);
@@ -223,6 +224,21 @@ export const GraduationTranscriptModal: React.FC<GraduationTranscriptModalProps>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
+            {/* Black & White Ink Saver Print Mode Toggle */}
+            <button
+              type="button"
+              onClick={() => setIsBwMode(!isBwMode)}
+              className={`text-xs px-3 py-2 rounded-xl font-bold transition-all flex items-center gap-1.5 cursor-pointer border ${
+                isBwMode
+                  ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-sm'
+                  : 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700'
+              }`}
+              title="ለቢሮ ፕሪንተር የሚሆን የጥቁርና ነጭ (Ink-Saver) የፕሪንት አማራጭን ያብሩ/ያጥፉ"
+            >
+              <Printer className="w-4 h-4" />
+              <span>{isBwMode ? '🖨️ ጥቁርና ነጭ (B&W ON)' : '🌈 በቀለም (Color View)'}</span>
+            </button>
+
             <button
               type="button"
               onClick={handleDownloadPdf}
@@ -270,7 +286,9 @@ export const GraduationTranscriptModal: React.FC<GraduationTranscriptModalProps>
         {/* Printable Official Document (A4 Multi-page Optimized) */}
         <div className="p-3 sm:p-6 bg-slate-100/60 overflow-x-auto">
           <div
-            className="p-6 sm:p-10 text-slate-900 bg-white a4-portrait-document official-certificate-border shadow-md mx-auto"
+            className={`p-6 sm:p-10 text-slate-900 bg-white a4-portrait-document official-certificate-border shadow-md mx-auto ${
+              isBwMode ? 'bw-mode-active' : ''
+            }`}
             id="printable-graduation-transcript"
           >
             {/* Institutional Letterhead */}
@@ -279,7 +297,9 @@ export const GraduationTranscriptModal: React.FC<GraduationTranscriptModalProps>
                 <img
                   src={churchLogo || CHURCH_LOGO}
                   alt="የብርብር ከተማ ቃለ ሕይወት ቤተ ክርስቲያን"
-                  className="h-20 sm:h-24 w-auto object-contain drop-shadow-xs"
+                  className={`h-20 sm:h-24 w-auto object-contain drop-shadow-xs ${
+                    isBwMode ? 'filter grayscale contrast-125' : ''
+                  }`}
                 />
               </div>
               <h1 className="text-xl sm:text-2xl font-black tracking-wide text-slate-900 font-serif-ethiopic leading-tight">

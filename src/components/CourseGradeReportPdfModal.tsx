@@ -51,6 +51,7 @@ export const CourseGradeReportPdfModal: React.FC<CourseGradeReportPdfModalProps>
 
   const [selectedSemester, setSelectedSemester] = useState<string>(currentSemester || 'ALL');
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [isBwMode, setIsBwMode] = useState(false);
 
   const handleDownloadPdf = async () => {
     setIsExportingPdf(true);
@@ -139,6 +140,20 @@ export const CourseGradeReportPdfModal: React.FC<CourseGradeReportPdfModalProps>
 
             <button
               type="button"
+              onClick={() => setIsBwMode(!isBwMode)}
+              className={`text-xs px-3 py-2 rounded-xl font-bold transition-all flex items-center gap-1.5 cursor-pointer border ${
+                isBwMode
+                  ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-sm'
+                  : 'bg-emerald-950 text-emerald-200 border-emerald-700 hover:bg-emerald-900'
+              }`}
+              title="ለቢሮ ፕሪንተር የሚሆን የጥቁርና ነጭ (Ink-Saver) የፕሪንት አማራጭን ያብሩ/ያጥፉ"
+            >
+              <Printer className="w-4 h-4" />
+              <span>{isBwMode ? '🖨️ ጥቁርና ነጭ (B&W ON)' : '🌈 በቀለም (Color View)'}</span>
+            </button>
+
+            <button
+              type="button"
               onClick={handleDownloadPdf}
               disabled={isExportingPdf}
               className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3.5 py-2 rounded-xl font-bold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
@@ -183,7 +198,9 @@ export const CourseGradeReportPdfModal: React.FC<CourseGradeReportPdfModalProps>
         <div className="p-3 sm:p-6 bg-slate-100/60 overflow-x-auto max-h-[82vh] overflow-y-auto print:max-h-none print:overflow-visible print:p-0">
           <div
             id="printable-course-grade-report"
-            className="p-6 sm:p-8 text-slate-900 bg-white a4-portrait-document official-certificate-border shadow-md mx-auto space-y-5"
+            className={`p-6 sm:p-8 text-slate-900 bg-white a4-portrait-document official-certificate-border shadow-md mx-auto space-y-5 ${
+              isBwMode ? 'bw-mode-active' : ''
+            }`}
           >
             {/* Official Letterhead Header */}
           <div className="border-b-2 border-slate-900 pb-4 relative">
@@ -192,7 +209,9 @@ export const CourseGradeReportPdfModal: React.FC<CourseGradeReportPdfModalProps>
                 <img
                   src={logoSrc}
                   alt="የብርብር ከተማ ቃለ ሕይወት ቤተ ክርስቲያን"
-                  className="w-16 h-16 sm:w-20 sm:h-20 object-contain rounded-xl p-1 border border-slate-300 shadow-2xs"
+                  className={`w-16 h-16 sm:w-20 sm:h-20 object-contain rounded-xl p-1 border border-slate-300 shadow-2xs ${
+                    isBwMode ? 'filter grayscale contrast-125' : ''
+                  }`}
                 />
                 <div>
                   <h1 className="text-base sm:text-xl font-black text-slate-900 leading-tight">

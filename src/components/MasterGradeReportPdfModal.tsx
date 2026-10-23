@@ -32,6 +32,7 @@ export const MasterGradeReportPdfModal: React.FC<MasterGradeReportPdfModalProps>
   const [selectedProgram, setSelectedProgram] = useState<'ALL' | ProgramType>(initialProgram);
   const [selectedSemester, setSelectedSemester] = useState<string>(currentSemester || 'ALL');
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [isBwMode, setIsBwMode] = useState(false);
 
   const handleDownloadPdf = async () => {
     setIsExportingPdf(true);
@@ -99,6 +100,20 @@ export const MasterGradeReportPdfModal: React.FC<MasterGradeReportPdfModalProps>
 
             <button
               type="button"
+              onClick={() => setIsBwMode(!isBwMode)}
+              className={`text-xs px-3 py-2 rounded-xl font-bold transition-all flex items-center gap-1.5 cursor-pointer border ${
+                isBwMode
+                  ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-sm'
+                  : 'bg-emerald-950 text-emerald-200 border-emerald-700 hover:bg-emerald-900'
+              }`}
+              title="ለቢሮ ፕሪንተር የሚሆን የጥቁርና ነጭ (Ink-Saver) የፕሪንት አማራጭን ያብሩ/ያጥፉ"
+            >
+              <Printer className="w-4 h-4" />
+              <span>{isBwMode ? '🖨️ ጥቁርና ነጭ (B&W ON)' : '🌈 በቀለም (Color View)'}</span>
+            </button>
+
+            <button
+              type="button"
               onClick={handleDownloadPdf}
               disabled={isExportingPdf}
               className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3.5 py-2 rounded-xl font-bold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
@@ -146,7 +161,9 @@ export const MasterGradeReportPdfModal: React.FC<MasterGradeReportPdfModalProps>
         <div className="p-3 sm:p-6 bg-slate-100/60 overflow-x-auto max-h-[82vh] overflow-y-auto print:max-h-none print:overflow-visible print:p-0">
           <div
             id="printable-master-grade-report"
-            className="p-6 sm:p-8 space-y-8 bg-white a4-landscape-document official-certificate-border shadow-md mx-auto"
+            className={`p-6 sm:p-8 space-y-8 bg-white a4-landscape-document official-certificate-border shadow-md mx-auto ${
+              isBwMode ? 'bw-mode-active' : ''
+            }`}
           >
             {programs.map((prog) => {
               const progStudents = students.filter((s) => s.program === prog);

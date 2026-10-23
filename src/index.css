@@ -179,3 +179,44 @@
     display: none;
   }
 }
+
+/* Black & White / Ink-Saver Print Mode Styles */
+.bw-mode-active {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border-color: #0f172a !important;
+  outline-color: #0f172a !important;
+}
+
+.bw-mode-active * {
+  color: #000000 !important;
+  border-color: #334155 !important;
+}
+
+.bw-mode-active img {
+  filter: grayscale(100%) contrast(130%) !important;
+}
+
+.bw-mode-active th {
+  background-color: #f1f5f9 !important;
+  color: #000000 !important;
+  font-weight: 800 !important;
+}
+
+.bw-mode-active td {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+.bw-mode-active .bg-amber-50,
+.bw-mode-active .bg-amber-100,
+.bw-mode-active .bg-emerald-50,
+.bw-mode-active .bg-emerald-100,
+.bw-mode-active .bg-indigo-50,
+.bw-mode-active .bg-indigo-100,
+.bw-mode-active .bg-slate-900,
+.bw-mode-active .bg-slate-800 {
+  background-color: #f8fafc !important;
+  color: #000000 !important;
+  border: 1px solid #0f172a !important;
+}
