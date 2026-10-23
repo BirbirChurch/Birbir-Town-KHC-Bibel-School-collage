@@ -325,6 +325,7 @@ export const DeanPortal: React.FC<DeanPortalProps> = ({
             >
               <option value="1" className="text-slate-800">1ኛ ሴሚስተር</option>
               <option value="2" className="text-slate-800">2ኛ ሴሚስተር</option>
+              <option value="ALL" className="text-slate-800">ሁሉም ሴሚስተሮች (All Semesters)</option>
             </select>
           </div>
 

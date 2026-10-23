@@ -583,6 +583,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   >
                     <option value="1">1ኛ ሴሚስተር (Semester 1)</option>
                     <option value="2">2ኛ ሴሚስተር (Semester 2)</option>
+                    <option value="ALL">ሁሉም ሴሚስተሮች (All Semesters)</option>
                   </select>
                 </div>
                 <p className="text-[11px] text-amber-800">

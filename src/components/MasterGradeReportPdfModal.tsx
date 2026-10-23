@@ -30,13 +30,14 @@ export const MasterGradeReportPdfModal: React.FC<MasterGradeReportPdfModalProps>
   initialProgram = 'ALL'
 }) => {
   const [selectedProgram, setSelectedProgram] = useState<'ALL' | ProgramType>(initialProgram);
+  const [selectedSemester, setSelectedSemester] = useState<string>(currentSemester || 'ALL');
   const [isExportingPdf, setIsExportingPdf] = useState(false);
 
   const handleDownloadPdf = async () => {
     setIsExportingPdf(true);
     try {
       const progLabel = selectedProgram === 'ALL' ? 'All_Programs' : selectedProgram;
-      const filename = `Master_Grade_Sheet_${progLabel}_${currentYear}_Sem${currentSemester}.pdf`;
+      const filename = `Master_Grade_Sheet_${progLabel}_${currentYear}_Sem${selectedSemester}.pdf`;
       await downloadElementAsPdf('printable-master-grade-report', filename, { orientation: 'landscape' });
     } finally {
       setIsExportingPdf(false);
@@ -64,7 +65,7 @@ export const MasterGradeReportPdfModal: React.FC<MasterGradeReportPdfModalProps>
                 የተማሪዎች አጠቃላይ የሴሚስተር ውጤት ዝርዝር ሰነድ (Master Grade Sheet - PDF)
               </h3>
               <p className="text-xs text-emerald-200">
-                የትምህርት ዘመን {currentYear} ዓ.ም ({currentSemester}ኛ ሴሚስተር)
+                የትምህርት ዘመን {currentYear} ዓ.ም ({selectedSemester === 'ALL' ? 'ሁሉም ሴሚስተሮች' : `${selectedSemester}ኛ ሴሚስተር`})
               </p>
             </div>
           </div>
@@ -75,11 +76,24 @@ export const MasterGradeReportPdfModal: React.FC<MasterGradeReportPdfModalProps>
               <select
                 value={selectedProgram}
                 onChange={(e) => setSelectedProgram(e.target.value as any)}
-                className="bg-emerald-950 text-white text-xs px-2 py-1 rounded-lg border border-emerald-700 cursor-pointer"
+                className="bg-emerald-950 text-white text-xs px-2 py-1 rounded-lg border border-emerald-700 cursor-pointer font-bold"
               >
                 <option value="ALL">ሁሉንም ፕሮግራሞች (All)</option>
                 <option value="Diploma">ዲፕሎማ ብቻ (Diploma)</option>
                 <option value="Degree">ድግሪ ብቻ (Degree)</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-1.5 bg-emerald-900/60 px-2 py-1 rounded-xl border border-emerald-700/50">
+              <span className="text-xs text-emerald-200">ሴሚስተር:</span>
+              <select
+                value={selectedSemester}
+                onChange={(e) => setSelectedSemester(e.target.value)}
+                className="bg-emerald-950 text-white text-xs px-2 py-1 rounded-lg border border-emerald-700 cursor-pointer font-bold"
+              >
+                <option value="ALL">ሁሉም ሴሚስተሮች (All)</option>
+                <option value="1">1ኛ ሴሚስተር</option>
+                <option value="2">2ኛ ሴሚስተር</option>
               </select>
             </div>
 
@@ -100,7 +114,7 @@ export const MasterGradeReportPdfModal: React.FC<MasterGradeReportPdfModalProps>
 
             <button
               type="button"
-              onClick={() => exportMasterSemesterGradeSheetToExcel(students, courses, grades, currentYear, currentSemester, selectedProgram)}
+              onClick={() => exportMasterSemesterGradeSheetToExcel(students, courses, grades, currentYear, selectedSemester, selectedProgram)}
               className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs px-3.5 py-2 rounded-xl font-bold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
               title="አጠቃላይ ውጤቱን በማይክሮሶፍት ኤክሴል ፋይል አውርድ"
             >
@@ -156,7 +170,7 @@ export const MasterGradeReportPdfModal: React.FC<MasterGradeReportPdfModalProps>
                         የተማሪዎች ይፋዊ አጠቃላይ የሴሚስተር ውጤት ማጠቃለያ ሰነድ (Master Grade Sheet)
                       </h3>
                       <p className="text-xs text-slate-600">
-                        ፕሮግራም: <strong className="text-slate-900">{prog === 'Diploma' ? 'የመጽሐፍ ቅዱስ ዲፕሎማ' : 'የሥነ-መለኮት ድግሪ'}</strong> | የትምህርት ዘመን: <strong className="text-slate-900">{currentYear} ዓ.ም</strong> ({currentSemester}ኛ ሴሚስተር)
+                        ፕሮግራም: <strong className="text-slate-900">{prog === 'Diploma' ? 'የመጽሐፍ ቅዱስ ዲፕሎማ' : 'የሥነ-መለኮት ድግሪ'}</strong> | የትምህርት ዘመን: <strong className="text-slate-900">{currentYear} ዓ.ም</strong> ({selectedSemester === 'ALL' ? 'ሁሉም ሴሚስተሮች' : `${selectedSemester}ኛ ሴሚስተር`})
                       </p>
                     </div>
                   </div>
@@ -190,7 +204,7 @@ export const MasterGradeReportPdfModal: React.FC<MasterGradeReportPdfModalProps>
                     </thead>
                     <tbody className="divide-y divide-slate-200">
                       {progStudents.map((student, idx) => {
-                        const gpa = calculateStudentGPA(student, courses, grades, currentYear, currentSemester);
+                        const gpa = calculateStudentGPA(student, courses, grades, currentYear, selectedSemester);
                         const gpaNum = parseFloat(gpa);
 
                         return (
@@ -211,7 +225,7 @@ export const MasterGradeReportPdfModal: React.FC<MasterGradeReportPdfModalProps>
                               {student.currentStudyYear || 1}ኛ ዓመት
                             </td>
                             {progCourses.map((c) => {
-                              const g = resolveGradeBreakdown(grades, student.uid, c.id, currentYear, currentSemester, student.id);
+                              const g = resolveGradeBreakdown(grades, student.uid, c.id, currentYear, selectedSemester, student.id);
                               const eff = getEffectiveGradeValues(g, getCourseAssessmentItems(c));
                               return (
                                 <td key={c.id} className="p-1.5 border-r border-slate-200 text-center font-mono">

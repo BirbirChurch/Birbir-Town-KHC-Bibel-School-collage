@@ -53,6 +53,29 @@ export async function downloadElementAsPdf(
         clonedElement.style.margin = '0 auto';
         clonedElement.style.backgroundColor = '#ffffff';
 
+        // 1. Expand all overflow scroll containers so no table or row is clipped
+        const overflowBoxes = clonedElement.querySelectorAll('.overflow-x-auto, .overflow-y-auto, .overflow-auto');
+        overflowBoxes.forEach((box) => {
+          (box as HTMLElement).style.overflow = 'visible';
+          (box as HTMLElement).style.maxHeight = 'none';
+          (box as HTMLElement).style.maxWidth = '100%';
+        });
+
+        // 2. Ensure all tables auto-fit within the container width
+        const tables = clonedElement.querySelectorAll('table');
+        tables.forEach((tbl) => {
+          (tbl as HTMLElement).style.width = '100%';
+          (tbl as HTMLElement).style.maxWidth = '100%';
+          (tbl as HTMLElement).style.tableLayout = 'auto';
+        });
+
+        // 3. Ensure table cell content wraps properly
+        const cells = clonedElement.querySelectorAll('th, td');
+        cells.forEach((c) => {
+          (c as HTMLElement).style.whiteSpace = 'normal';
+          (c as HTMLElement).style.wordBreak = 'break-word';
+        });
+
         // Clean any SVG images that might taint canvas by converting to base64 if needed
         const images = clonedElement.querySelectorAll('img');
         images.forEach((img) => {
@@ -195,7 +218,7 @@ export function printElementDirectly(
           <style>
             @page {
               size: A4 ${printOrientation};
-              margin: 8mm 10mm;
+              margin: 6mm 8mm;
             }
             body {
               background: #ffffff !important;
@@ -208,12 +231,21 @@ export function printElementDirectly(
             .no-print {
               display: none !important;
             }
+            .overflow-x-auto, .overflow-y-auto {
+              overflow: visible !important;
+              max-height: none !important;
+            }
             table {
               border-collapse: collapse !important;
               width: 100% !important;
+              max-width: 100% !important;
+              table-layout: auto !important;
             }
             th, td {
               border-color: #94a3b8 !important;
+              padding: 4px 6px !important;
+              word-break: break-word !important;
+              white-space: normal !important;
             }
           </style>
         </head>

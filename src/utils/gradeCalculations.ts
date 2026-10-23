@@ -163,6 +163,14 @@ export function resolveGradeBreakdown(
     return empty;
   }
 
+  // If semester is 'ALL' or empty, check semester 1, semester 2, or direct keys
+  if (semester === 'ALL' || !semester) {
+    const sem1Key = getGradeKey(studentUid, courseId, year, '1');
+    if (gradesRecord[sem1Key]) return gradesRecord[sem1Key];
+    const sem2Key = getGradeKey(studentUid, courseId, year, '2');
+    if (gradesRecord[sem2Key]) return gradesRecord[sem2Key];
+  }
+
   // 1. Composite key by UID: studentUid_courseId_year_sem
   const keyWithUid = getGradeKey(studentUid, courseId, year, semester);
   if (gradesRecord[keyWithUid]) {

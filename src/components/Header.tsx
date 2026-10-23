@@ -65,7 +65,7 @@ export const Header: React.FC<HeaderProps> = ({
                     መጽሐፍ ቅዱስ ትምህርት ቤት የመረጃ ማኔጅመንት ሲስተም
                   </p>
                   <span className="inline-flex items-center gap-1 bg-amber-400/20 text-amber-300 border border-amber-400/40 text-[10px] px-2.5 py-0.5 rounded-full font-bold">
-                    <span>🇪🇹 እንደ ኢትዮጵያ ዘመን አቆጣጠር፦ {currentYear} ዓ.ም ({currentSemester}ኛ ሴሚስተር)</span>
+                    <span>🇪🇹 እንደ ኢትዮጵያ ዘመን አቆጣጠር፦ {currentYear} ዓ.ም ({currentSemester === 'ALL' ? 'ሁሉም ሴሚስተሮች' : `${currentSemester}ኛ ሴሚስተር`})</span>
                   </span>
                 </div>
               </div>

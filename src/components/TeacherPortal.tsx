@@ -47,7 +47,8 @@ import {
   getCourseAssessmentItems,
   getCriterionScore,
   getEffectiveGradeValues,
-  getGradeKey
+  getGradeKey,
+  resolveGradeBreakdown
 } from '../utils/gradeCalculations.ts';
 import { OFFICIAL_GRADING_SCALE } from '../data/initialData.ts';
 import { exportCourseGradesToExcel, downloadCourseGradeTemplateExcel } from '../utils/excelUtils.ts';
@@ -113,6 +114,7 @@ export const TeacherPortal: React.FC<TeacherPortalProps> = ({
   const [selectedCourseId, setSelectedCourseId] = useState<string>(
     accessibleCourses[0]?.id || courses[0]?.id || ''
   );
+  const [selectedSemesterFilter, setSelectedSemesterFilter] = useState<string>(currentSemester || '1');
   const [localGrades, setLocalGrades] = useState<Record<string, GradeBreakdown>>({});
 
   // Assessment Scheme & Export/Import Modal States
@@ -151,7 +153,7 @@ export const TeacherPortal: React.FC<TeacherPortalProps> = ({
     }
   }, [activeCourse?.id, activeCourse?.assessmentConfig]);
 
-  // Sync initial local grades for this course
+  // Sync initial local grades for this course & semester
   useEffect(() => {
     const course = courses.find((c) => c.id === selectedCourseId);
     if (!course) return;
@@ -160,15 +162,67 @@ export const TeacherPortal: React.FC<TeacherPortalProps> = ({
     const initial: Record<string, GradeBreakdown> = {};
 
     enrolled.forEach((s) => {
-      const key = getGradeKey(s.uid, course.id, currentYear, currentSemester);
-      const existing = grades[key] || { p1: 0, p2: 0, mid: 0, final: 0, att: 0 };
+      const existing = resolveGradeBreakdown(grades, s.uid, course.id, currentYear, selectedSemesterFilter, s.id);
       initial[s.uid] = { ...existing };
     });
 
     setLocalGrades(initial);
-  }, [selectedCourseId, courses, students, grades, currentYear, currentSemester]);
+  }, [selectedCourseId, courses, students, grades, currentYear, selectedSemesterFilter]);
 
   const enrolledStudents = activeCourse ? students.filter((s) => s.program === activeCourse.program) : [];
+
+  // Excel-like Keyboard Navigation (Arrow Keys / Enter / Tab) for score input grid
+  const handleCellKeyDown = (
+    e: React.KeyboardEvent<HTMLElement>,
+    r: number,
+    c: number
+  ) => {
+    const maxRows = enrolledStudents.length;
+    const maxCols = activeItems.length + 3; // criteria + total + letter + desc
+
+    let nextR = r;
+    let nextC = c;
+
+    if (e.key === 'ArrowDown' || e.key === 'Enter') {
+      e.preventDefault();
+      nextR = Math.min(maxRows - 1, r + 1);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      nextR = Math.max(0, r - 1);
+    } else if (e.key === 'ArrowRight') {
+      const input = e.currentTarget as HTMLInputElement;
+      if (
+        input.tagName === 'SELECT' ||
+        input.selectionStart === null ||
+        input.selectionStart === input.value.length
+      ) {
+        e.preventDefault();
+        nextC = Math.min(maxCols - 1, c + 1);
+      }
+    } else if (e.key === 'ArrowLeft') {
+      const input = e.currentTarget as HTMLInputElement;
+      if (
+        input.tagName === 'SELECT' ||
+        input.selectionStart === null ||
+        input.selectionStart === 0
+      ) {
+        e.preventDefault();
+        nextC = Math.max(0, c - 1);
+      }
+    } else {
+      return;
+    }
+
+    const target = document.querySelector<HTMLElement>(
+      `[data-cell-r="${nextR}"][data-cell-c="${nextC}"]`
+    );
+    if (target) {
+      target.focus();
+      if (target instanceof HTMLInputElement) {
+        target.select();
+      }
+    }
+  };
 
   // Add new criterion (መመዘኛ ጨምር)
   const handleAddCriterion = (customLabel?: string, customMax?: number) => {
@@ -632,6 +686,21 @@ export const TeacherPortal: React.FC<TeacherPortalProps> = ({
               </select>
             </div>
           )}
+
+          {/* Semester selection dropdown */}
+          <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-300 rounded-2xl px-3 py-2 text-xs shadow-2xs">
+            <Calendar className="w-4 h-4 text-amber-700" />
+            <label className="font-bold text-amber-950">ሴሚስተር:</label>
+            <select
+              value={selectedSemesterFilter}
+              onChange={(e) => setSelectedSemesterFilter(e.target.value)}
+              className="font-bold bg-transparent text-amber-950 focus:outline-none cursor-pointer"
+            >
+              <option value="1">1ኛ ሴሚስተር</option>
+              <option value="2">2ኛ ሴሚስተር</option>
+              <option value="ALL">ሁሉም ሴሚስተሮች (All Semesters)</option>
+            </select>
+          </div>
 
           {/* Course selection dropdown */}
           <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-300 rounded-2xl px-3.5 py-2 shadow-2xs">
@@ -1178,6 +1247,21 @@ export const TeacherPortal: React.FC<TeacherPortalProps> = ({
               </div>
             )}
 
+            {/* Keyboard Navigation Helper Banner */}
+            <div className="bg-amber-50/90 border border-amber-300/80 rounded-2xl px-4 py-2.5 text-xs font-bold text-amber-950 flex flex-wrap items-center justify-between gap-2 shadow-2xs">
+              <span className="flex items-center gap-2">
+                <span className="bg-amber-200 text-amber-950 px-2.5 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wide">
+                  ⌨️ የክይቦርድ መርጃ
+                </span>
+                <span>
+                  በክይቦርድ ቀስቶች (<b>ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Enter, Tab</b>) ወደ ጎን፣ ወደላይ እና ወደታች እያሳለፉ በቀላሉ መሙላት ይችላሉ!
+                </span>
+              </span>
+              <span className="text-[10px] text-amber-800 font-semibold bg-white/80 px-2 py-0.5 rounded-md border border-amber-200">
+                ሲነኩት ቁጥሩ አውቶማቲክ ይደምቃል (Auto-selected)
+              </span>
+            </div>
+
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-slate-600">
                 <thead className="bg-slate-50 text-slate-700 font-bold uppercase text-[10px] rounded-lg">
@@ -1282,7 +1366,7 @@ export const TeacherPortal: React.FC<TeacherPortalProps> = ({
                         <td className="p-2.5 font-mono font-bold text-slate-800">{s.id}</td>
                         <td className="p-2.5 font-bold text-slate-900">{s.name}</td>
 
-                        {/* Dynamic Criteria Input Cells */}
+                        {/* Dynamic Criteria Input Cells with Keyboard Grid Navigation */}
                         {activeItems.map((item, itemIdx) => {
                           const color = getCriterionColor(itemIdx);
                           const score = getCriterionScore(g, item.id, itemIdx);
@@ -1294,12 +1378,16 @@ export const TeacherPortal: React.FC<TeacherPortalProps> = ({
                                 max={item.max}
                                 step="0.5"
                                 placeholder="—"
+                                data-cell-r={idx}
+                                data-cell-c={itemIdx}
+                                onKeyDown={(e) => handleCellKeyDown(e, idx, itemIdx)}
+                                onFocus={(e) => e.target.select()}
                                 value={score === 0 ? '' : score}
                                 onChange={(e) =>
                                   handleCriterionScoreChange(s.uid, item.id, e.target.value, item.max, itemIdx)
                                 }
-                                className={`w-16 px-1.5 py-1 text-center font-mono font-bold text-xs border ${color.border} rounded-lg ${color.focus} bg-white placeholder:text-slate-300 shadow-2xs`}
-                                title={`${item.label} (ከ ${item.max}%)`}
+                                className={`w-16 px-1.5 py-1 text-center font-mono font-bold text-xs border ${color.border} rounded-lg ${color.focus} bg-white placeholder:text-slate-300 shadow-2xs focus:ring-2 focus:ring-amber-500`}
+                                title={`${item.label} (ከ ${item.max}%) — በክይቦርድ ቀስቶች መንቀሳቀስ ይችላሉ`}
                               />
                             </td>
                           );
@@ -1317,6 +1405,10 @@ export const TeacherPortal: React.FC<TeacherPortalProps> = ({
                               max="100"
                               step="0.5"
                               placeholder="—"
+                              data-cell-r={idx}
+                              data-cell-c={activeItems.length}
+                              onKeyDown={(e) => handleCellKeyDown(e, idx, activeItems.length)}
+                              onFocus={(e) => e.target.select()}
                               value={
                                 hasCustomTotal
                                   ? g.customTotal === 0
@@ -1353,6 +1445,9 @@ export const TeacherPortal: React.FC<TeacherPortalProps> = ({
                         {/* Editable Letter Grade (ፊደል ደረጃ) */}
                         <td className="p-2 text-center">
                           <select
+                            data-cell-r={idx}
+                            data-cell-c={activeItems.length + 1}
+                            onKeyDown={(e) => handleCellKeyDown(e, idx, activeItems.length + 1)}
                             value={g.customLetter || ''}
                             onChange={(e) => handleCustomLetterChange(s.uid, e.target.value)}
                             className={`w-20 px-1 py-1 text-center font-black text-xs rounded-lg border focus:ring-2 focus:ring-amber-500 cursor-pointer shadow-2xs transition-colors ${
@@ -1378,6 +1473,10 @@ export const TeacherPortal: React.FC<TeacherPortalProps> = ({
                         <td className="p-2 text-center">
                           <input
                             type="text"
+                            data-cell-r={idx}
+                            data-cell-c={activeItems.length + 2}
+                            onKeyDown={(e) => handleCellKeyDown(e, idx, activeItems.length + 2)}
+                            onFocus={(e) => e.target.select()}
                             placeholder={defaultDesc}
                             value={g.customDesc !== undefined ? g.customDesc : ''}
                             onChange={(e) => handleCustomDescChange(s.uid, e.target.value)}

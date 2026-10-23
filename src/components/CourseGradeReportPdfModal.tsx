@@ -49,12 +49,13 @@ export const CourseGradeReportPdfModal: React.FC<CourseGradeReportPdfModalProps>
   const criteria = getCourseAssessmentItems(course);
   const totalWeight = criteria.reduce((sum, it) => sum + (Number(it.max) || 0), 0);
 
+  const [selectedSemester, setSelectedSemester] = useState<string>(currentSemester || 'ALL');
   const [isExportingPdf, setIsExportingPdf] = useState(false);
 
   const handleDownloadPdf = async () => {
     setIsExportingPdf(true);
     try {
-      const filename = `Course_Report_${course.code || course.name}_${currentYear}_Sem${currentSemester}.pdf`;
+      const filename = `Course_Report_${course.code || course.name}_${currentYear}_Sem${selectedSemester}.pdf`;
       await downloadElementAsPdf('printable-course-grade-report', filename);
     } finally {
       setIsExportingPdf(false);
@@ -66,7 +67,7 @@ export const CourseGradeReportPdfModal: React.FC<CourseGradeReportPdfModalProps>
   };
 
   const handleExportExcel = () => {
-    exportCourseGradesToExcel(course, students, grades, currentYear, currentSemester);
+    exportCourseGradesToExcel(course, students, grades, currentYear, selectedSemester);
   };
 
   // Grade statistics using robust resolver so grades never come out empty
@@ -82,7 +83,7 @@ export const CourseGradeReportPdfModal: React.FC<CourseGradeReportPdfModalProps>
   };
 
   enrolled.forEach((s) => {
-    const g = resolveGradeBreakdown(grades, s.uid, course.id, currentYear, currentSemester, s.id);
+    const g = resolveGradeBreakdown(grades, s.uid, course.id, currentYear, selectedSemester, s.id);
     const eff = getEffectiveGradeValues(g, criteria);
     if (eff.hasAny) {
       totalScoreSum += eff.total;
@@ -123,6 +124,19 @@ export const CourseGradeReportPdfModal: React.FC<CourseGradeReportPdfModalProps>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 bg-emerald-900/60 px-2.5 py-1 rounded-xl border border-emerald-700/50">
+              <span className="text-xs text-emerald-200 font-bold">ሴሚስተር:</span>
+              <select
+                value={selectedSemester}
+                onChange={(e) => setSelectedSemester(e.target.value)}
+                className="bg-emerald-950 text-white text-xs px-2 py-1 rounded-lg border border-emerald-700 font-bold cursor-pointer"
+              >
+                <option value="ALL">ሁሉም ሴሚስተሮች (All Semesters)</option>
+                <option value="1">1ኛ ሴሚስተር</option>
+                <option value="2">2ኛ ሴሚስተር</option>
+              </select>
+            </div>
+
             <button
               type="button"
               onClick={handleDownloadPdf}
@@ -198,7 +212,8 @@ export const CourseGradeReportPdfModal: React.FC<CourseGradeReportPdfModalProps>
                   <span className="font-bold">የትምህርት ዘመን፦</span> {currentYear} ዓ.ም (እንደ ኢትዮጵያ ዘመን አቆጣጠር)
                 </p>
                 <p>
-                  <span className="font-bold">ሴሚስተር፦</span> {currentSemester}ኛ ሴሚስተር
+                  <span className="font-bold">ሴሚስተር፦</span>{' '}
+                  {selectedSemester === 'ALL' ? 'ሁሉም ሴሚስተሮች (All Semesters)' : `${selectedSemester}ኛ ሴሚስተር`}
                 </p>
                 <p className="text-emerald-800 font-bold">
                   🇪🇹 የኢትዮጵያ ዘመን አቆጣጠር (ዓ.ም)
