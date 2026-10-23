@@ -44,7 +44,7 @@ export const MasterGradeReportPdfModal: React.FC<MasterGradeReportPdfModalProps>
   };
 
   const handlePrint = () => {
-    printElementDirectly('printable-master-grade-report');
+    printElementDirectly('printable-master-grade-report', { orientation: 'landscape' });
   };
 
   const programs = selectedProgram === 'ALL' ? ['Diploma' as const, 'Degree' as const] : [selectedProgram as ProgramType];
@@ -128,17 +128,18 @@ export const MasterGradeReportPdfModal: React.FC<MasterGradeReportPdfModalProps>
           </div>
         </div>
 
-        {/* Printable Document Body */}
-        <div
-          id="printable-master-grade-report"
-          className="p-6 sm:p-10 max-h-[82vh] overflow-y-auto space-y-8 bg-white print:p-0 print:overflow-visible"
-        >
-          {programs.map((prog) => {
-            const progStudents = students.filter((s) => s.program === prog);
-            const progCourses = courses.filter((c) => c.program === prog);
+        {/* Printable Document Body (A4 Landscape Optimized) */}
+        <div className="p-3 sm:p-6 bg-slate-100/60 overflow-x-auto max-h-[82vh] overflow-y-auto print:max-h-none print:overflow-visible print:p-0">
+          <div
+            id="printable-master-grade-report"
+            className="p-6 sm:p-8 space-y-8 bg-white a4-landscape-document official-certificate-border shadow-md mx-auto"
+          >
+            {programs.map((prog) => {
+              const progStudents = students.filter((s) => s.program === prog);
+              const progCourses = courses.filter((c) => c.program === prog);
 
-            return (
-              <div key={prog} className="space-y-4 print:break-after-page">
+              return (
+                <div key={prog} className="space-y-4 avoid-break mb-8 last:mb-0">
                 {/* Header */}
                 <div className="flex items-center justify-between pb-4 border-b-2 border-emerald-900">
                   <div className="flex items-center gap-4">
@@ -303,6 +304,7 @@ export const MasterGradeReportPdfModal: React.FC<MasterGradeReportPdfModalProps>
               </div>
             );
           })}
+          </div>
         </div>
       </div>
     </div>

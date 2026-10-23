@@ -267,101 +267,105 @@ export const GraduationTranscriptModal: React.FC<GraduationTranscriptModalProps>
           </div>
         </div>
 
-        {/* Printable Official Document */}
-        <div className="p-8 sm:p-12 text-slate-900 bg-white" id="printable-graduation-transcript">
-          {/* Institutional Letterhead */}
-          <div className="text-center border-b-2 border-slate-900 pb-5 mb-6 relative">
-            <div className="flex justify-center mb-3">
-              <img
-                src={churchLogo || CHURCH_LOGO}
-                alt="የብርብር ከተማ ቃለ ሕይወት ቤተ ክርስቲያን"
-                className="h-24 sm:h-28 w-auto object-contain drop-shadow-sm"
-              />
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-wide text-slate-900 font-serif-ethiopic">
-              የብርብር ከተማ ቃለ ሕይወት ቤተ ክርስቲያን
-            </h1>
-            <h2 className="text-lg sm:text-xl font-bold text-slate-800 mt-1">
-              መጽሐፍ ቅዱስ ትምህርት ቤት
-            </h2>
-            <p className="text-xs uppercase font-semibold text-slate-600 mt-0.5 tracking-wider">
-              Birbir City Kale Heywet Church Bible Training School
-            </p>
-            <div className="mt-3 inline-block bg-slate-900 text-white text-xs sm:text-sm font-black px-4 py-1.5 rounded-lg tracking-wide uppercase">
-              ይፋዊ የተሟላ የምረቃ ትራንስክሪፕት እና የትምህርት መዝገብ (Official Consolidated Graduation Transcript)
-            </div>
-            <p className="text-[11px] text-slate-700 font-bold mt-1.5">
-              🇪🇹 የዘመን አቆጣጠር፦ እንደ ኢትዮጵያ ዘመን አቆጣጠር (ዓ.ም)
-            </p>
-          </div>
-
-          {/* Student Biodata & Degree Program Information Card */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-semibold mb-6 border-2 border-slate-300 p-4 rounded-2xl bg-slate-50/70">
-            <div className="space-y-2">
-              <p className="flex items-center gap-2">
-                <span className="text-slate-500 font-normal w-32">የተማሪው ሙሉ ስም:</span>
-                <span className="font-extrabold text-slate-950 text-sm">{student.name}</span>
+        {/* Printable Official Document (A4 Multi-page Optimized) */}
+        <div className="p-3 sm:p-6 bg-slate-100/60 overflow-x-auto">
+          <div
+            className="p-6 sm:p-10 text-slate-900 bg-white a4-portrait-document official-certificate-border shadow-md mx-auto"
+            id="printable-graduation-transcript"
+          >
+            {/* Institutional Letterhead */}
+            <div className="text-center border-b-2 border-slate-900 pb-4 mb-5 relative">
+              <div className="flex justify-center mb-2.5">
+                <img
+                  src={churchLogo || CHURCH_LOGO}
+                  alt="የብርብር ከተማ ቃለ ሕይወት ቤተ ክርስቲያን"
+                  className="h-20 sm:h-24 w-auto object-contain drop-shadow-xs"
+                />
+              </div>
+              <h1 className="text-xl sm:text-2xl font-black tracking-wide text-slate-900 font-serif-ethiopic leading-tight">
+                የብርብር ከተማ ቃለ ሕይወት ቤተ ክርስቲያን
+              </h1>
+              <h2 className="text-base sm:text-lg font-bold text-slate-800 mt-0.5">
+                መጽሐፍ ቅዱስ ትምህርት ቤት
+              </h2>
+              <p className="text-[11px] uppercase font-semibold text-slate-600 mt-0.5 tracking-wider">
+                Birbir City Kale Heywet Church Bible Training School
               </p>
-              <p className="flex items-center gap-2">
-                <span className="text-slate-500 font-normal w-32">የተማሪ መለያ ቁጥር (ID):</span>
-                <span className="font-mono font-black text-slate-900 text-sm bg-white px-2 py-0.5 rounded border border-slate-300">
-                  {student.id}
-                </span>
-              </p>
-              <p className="flex items-center gap-2">
-                <span className="text-slate-500 font-normal w-32">ጾታ (Gender):</span>
-                <span className="font-bold text-slate-900">{student.gender}</span>
-              </p>
-              <p className="flex items-center gap-2">
-                <span className="text-slate-500 font-normal w-32">የገቡበት ዓ.ም:</span>
-                <span className="font-bold text-slate-900">{student.admissionYear || '2018'} ዓ.ም (እንደ ኢትዮጵያ ዘመን አቆጣጠር)</span>
+              <div className="mt-2.5 inline-block bg-slate-900 text-white text-xs sm:text-sm font-black px-4 py-1.5 rounded-lg tracking-wide uppercase">
+                ይፋዊ የተሟላ የምረቃ ትራንስክሪፕት እና የትምህርት መዝገብ (Official Consolidated Graduation Transcript)
+              </div>
+              <p className="text-[10px] text-slate-700 font-bold mt-1">
+                🇪🇹 የዘመን አቆጣጠር፦ እንደ ኢትዮጵያ ዘመን አቆጣጠር (ዓ.ም)
               </p>
             </div>
 
-            <div className="space-y-2">
-              <p className="flex items-center gap-2">
-                <span className="text-slate-500 font-normal w-36">የትምህርት ፕሮግራም:</span>
-                <span className="font-black text-slate-950">
-                  {student.program === 'Degree' ? 'የድግሪ ፕሮግራም (Bachelor of Theology)' : 'የዲፕሎማ ፕሮግራም (Diploma in Bible Studies)'}
-                </span>
-              </p>
-              <p className="flex items-center gap-2">
-                <span className="text-slate-500 font-normal w-36">የትምህርት ዝግጅት / መንገድ:</span>
-                <span className="font-bold text-slate-900">
-                  {student.program === 'Diploma'
-                    ? '2 ዓመት (በአራት ሴሚስተር የተጠናቀቀ)'
-                    : student.degreeTrack === '2_YEAR' || student.priorDiploma
-                    ? '2 ዓመት (በአራት ሴሚስተር — ቀድሞ የመጽሐፍ ቅዱስ ዲፕሎማ ያለው)'
-                    : '3 ዓመት መደበኛ (በ5-6 ሴሚስተር የተጠናቀቀ)'}
-                </span>
-              </p>
-              <p className="flex items-center gap-2">
-                <span className="text-slate-500 font-normal w-36">የተመረቁበት የትምህርት ዘመን:</span>
-                <span className="font-extrabold text-emerald-950 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-300">
-                  {student.graduationYear || currentYear} ዓ.ም (እንደ ኢትዮጵያ ዘመን አቆጣጠር)
-                </span>
-              </p>
-              <p className="flex items-center gap-2">
-                <span className="text-slate-500 font-normal w-36">የምረቃ ሁኔታ:</span>
-                <span className="inline-flex items-center gap-1 font-black text-emerald-800">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>በይፋ የተመረቀ (Officially Conferred)</span>
-                </span>
-              </p>
+            {/* Student Biodata & Degree Program Information Card */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs font-semibold mb-5 border-2 border-slate-300 p-3.5 rounded-xl bg-slate-50/70">
+              <div className="space-y-1.5">
+                <p className="flex items-center gap-2">
+                  <span className="text-slate-500 font-normal w-32">የተማሪው ሙሉ ስም:</span>
+                  <span className="font-extrabold text-slate-950 text-sm">{student.name}</span>
+                </p>
+                <p className="flex items-center gap-2">
+                  <span className="text-slate-500 font-normal w-32">የተማሪ መለያ ቁጥር (ID):</span>
+                  <span className="font-mono font-black text-slate-900 text-sm bg-white px-2 py-0.5 rounded border border-slate-300">
+                    {student.id}
+                  </span>
+                </p>
+                <p className="flex items-center gap-2">
+                  <span className="text-slate-500 font-normal w-32">ጾታ (Gender):</span>
+                  <span className="font-bold text-slate-900">{student.gender}</span>
+                </p>
+                <p className="flex items-center gap-2">
+                  <span className="text-slate-500 font-normal w-32">የገቡበት ዓ.ም:</span>
+                  <span className="font-bold text-slate-900">{student.admissionYear || '2018'} ዓ.ም (እንደ ኢትዮጵያ ዘመን አቆጣጠር)</span>
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <p className="flex items-center gap-2">
+                  <span className="text-slate-500 font-normal w-36">የትምህርት ፕሮግራም:</span>
+                  <span className="font-black text-slate-950">
+                    {student.program === 'Degree' ? 'የድግሪ ፕሮግራም (Bachelor of Theology)' : 'የዲፕሎማ ፕሮግራም (Diploma in Bible Studies)'}
+                  </span>
+                </p>
+                <p className="flex items-center gap-2">
+                  <span className="text-slate-500 font-normal w-36">የትምህርት ዝግጅት / መንገድ:</span>
+                  <span className="font-bold text-slate-900">
+                    {student.program === 'Diploma'
+                      ? '2 ዓመት (በአራት ሴሚስተር የተጠናቀቀ)'
+                      : student.degreeTrack === '2_YEAR' || student.priorDiploma
+                      ? '2 ዓመት (በአራት ሴሚስተር — ቀድሞ የመጽሐፍ ቅዱስ ዲፕሎማ ያለው)'
+                      : '3 ዓመት መደበኛ (በ5-6 ሴሚስተር የተጠናቀቀ)'}
+                  </span>
+                </p>
+                <p className="flex items-center gap-2">
+                  <span className="text-slate-500 font-normal w-36">የተመረቁበት የትምህርት ዘመን:</span>
+                  <span className="font-extrabold text-emerald-950 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-300">
+                    {student.graduationYear || currentYear} ዓ.ም (እንደ ኢትዮጵያ ዘመን አቆጣጠር)
+                  </span>
+                </p>
+                <p className="flex items-center gap-2">
+                  <span className="text-slate-500 font-normal w-36">የምረቃ ሁኔታ:</span>
+                  <span className="inline-flex items-center gap-1 font-black text-emerald-800">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>በይፋ የተመረቀ (Officially Conferred)</span>
+                  </span>
+                </p>
+              </div>
             </div>
-          </div>
 
-          {/* Sequential Multi-Semester Course Grade Tables */}
-          <div className="space-y-6 mb-6">
-            <h3 className="font-bold text-sm text-slate-800 flex items-center gap-2 pb-2 border-b border-slate-300">
-              <BookOpen className="w-4 h-4 text-emerald-800" />
-              <span>የተማሩባቸው ሙሉ ኮርሶችና የሴሚስተር ውጤቶች ዝርዝር ሰሌዳ (Detailed Course Curriculum & Term Records)</span>
-            </h3>
+            {/* Sequential Multi-Semester Course Grade Tables */}
+            <div className="space-y-5 mb-5">
+              <h3 className="font-bold text-sm text-slate-800 flex items-center gap-2 pb-2 border-b border-slate-300">
+                <BookOpen className="w-4 h-4 text-emerald-800" />
+                <span>የተማሩባቸው ሙሉ ኮርሶችና የሴሚስተር ውጤቶች ዝርዝር ሰሌዳ (Detailed Course Curriculum & Term Records)</span>
+              </h3>
 
-            {semesterRecords.map((sem) => (
-              <div key={sem.semesterIndex} className="border border-slate-300 rounded-xl overflow-hidden shadow-xs">
-                {/* Semester Header Bar */}
-                <div className="bg-slate-800 text-white px-4 py-2 flex flex-wrap justify-between items-center text-xs font-bold">
+              {semesterRecords.map((sem) => (
+                <div key={sem.semesterIndex} className="border-2 border-slate-300 rounded-xl overflow-hidden shadow-xs avoid-break mb-4">
+                  {/* Semester Header Bar */}
+                  <div className="bg-slate-800 text-white px-4 py-2 flex flex-wrap justify-between items-center text-xs font-bold">
                   <span className="flex items-center gap-2">
                     <span className="w-5 h-5 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center font-black text-[10px]">
                       {sem.semesterIndex}
@@ -421,13 +425,13 @@ export const GraduationTranscriptModal: React.FC<GraduationTranscriptModalProps>
           </div>
 
           {/* Cumulative Summary Card */}
-          <div className="bg-gradient-to-r from-emerald-900 via-slate-900 to-emerald-950 text-white rounded-2xl p-6 shadow-md border-2 border-amber-400/80 mb-6">
+          <div className="bg-gradient-to-r from-emerald-900 via-slate-900 to-emerald-950 text-white rounded-2xl p-5 sm:p-6 shadow-md border-2 border-amber-400/80 mb-6 avoid-break">
             <h4 className="text-xs uppercase tracking-wider font-bold text-amber-300 mb-3 flex items-center gap-2">
               <Award className="w-5 h-5 text-amber-400" />
               <span>አጠቃላይ የምረቃ ውጤት ማጠቃለያ (Cumulative Graduation Academic Summary)</span>
             </h4>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-center">
               <div className="p-3 bg-white/10 rounded-xl backdrop-blur-xs border border-white/10">
                 <span className="block text-[10px] text-slate-300 uppercase font-bold">ጠቅላላ ክሬዲቶች</span>
                 <span className="text-xl sm:text-2xl font-black font-mono text-white mt-1 block">
@@ -459,7 +463,7 @@ export const GraduationTranscriptModal: React.FC<GraduationTranscriptModalProps>
           </div>
 
           {/* Grading System Reference Legend */}
-          <div className="border border-slate-300 rounded-xl p-3 mb-8 bg-slate-50 text-[10px] text-slate-600">
+          <div className="border border-slate-300 rounded-xl p-3 mb-6 bg-slate-50 text-[10px] text-slate-600 avoid-break">
             <p className="font-bold text-slate-800 mb-1">የትምህርት ውጤት መስፈርት መመሪያ (Approved Grading Scale):</p>
             <div className="flex flex-wrap gap-x-4 gap-y-1">
               <span>90% – 100%: <strong>A+ (4.00)</strong> - እጅግ በጣም ጥሩ</span>
@@ -473,7 +477,7 @@ export const GraduationTranscriptModal: React.FC<GraduationTranscriptModalProps>
 
           {/* Official Signatures & Seal Verification Block */}
           {/* As explicitly required by user: მთავር አድሚን፣ ዲን እና ሪጅስተራል */}
-          <div className="relative pt-6 border-t-2 border-slate-300">
+          <div className="relative pt-6 border-t-2 border-slate-300 avoid-break">
             {/* Institutional Seal / Stamp */}
             {officialConfig?.showStamp && (
               <div className="absolute left-1/2 -top-6 transform -translate-x-1/2 flex flex-col items-center pointer-events-none opacity-95 z-10">
@@ -567,5 +571,6 @@ export const GraduationTranscriptModal: React.FC<GraduationTranscriptModalProps>
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 };

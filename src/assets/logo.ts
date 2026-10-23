@@ -90,7 +90,16 @@ const SVG_SEAL = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" 
   </g>
 </svg>`;
 
-export const DEFAULT_CHURCH_LOGO = `data:image/svg+xml;utf8,${encodeURIComponent(SVG_SEAL)}`;
+function svgToBase64(svg: string): string {
+  try {
+    if (typeof window !== 'undefined' && typeof window.btoa === 'function') {
+      return `data:image/svg+xml;base64,${window.btoa(unescape(encodeURIComponent(svg)))}`;
+    }
+  } catch (_) {}
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+
+export const DEFAULT_CHURCH_LOGO = svgToBase64(SVG_SEAL);
 
 export const getStoredChurchLogo = (): string => {
   if (typeof window !== 'undefined') {

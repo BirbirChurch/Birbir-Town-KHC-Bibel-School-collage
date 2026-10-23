@@ -165,12 +165,13 @@ export const CourseGradeReportPdfModal: React.FC<CourseGradeReportPdfModalProps>
           </div>
         </div>
 
-        {/* Printable Document Body */}
-        <div
-          id="printable-course-grade-report"
-          className="p-6 sm:p-10 text-slate-900 bg-white max-h-[82vh] overflow-y-auto print:max-h-none print:overflow-visible print:p-0 space-y-6"
-        >
-          {/* Official Letterhead Header */}
+        {/* Printable Document Body (A4 Optimized) */}
+        <div className="p-3 sm:p-6 bg-slate-100/60 overflow-x-auto max-h-[82vh] overflow-y-auto print:max-h-none print:overflow-visible print:p-0">
+          <div
+            id="printable-course-grade-report"
+            className="p-6 sm:p-8 text-slate-900 bg-white a4-portrait-document official-certificate-border shadow-md mx-auto space-y-5"
+          >
+            {/* Official Letterhead Header */}
           <div className="border-b-2 border-slate-900 pb-4 relative">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-4">
@@ -379,7 +380,7 @@ export const CourseGradeReportPdfModal: React.FC<CourseGradeReportPdfModalProps>
           </div>
 
           {/* Official Signatures & Seal Section */}
-          <div className="pt-6 border-t-2 border-slate-900 grid grid-cols-1 sm:grid-cols-3 gap-6 text-xs text-slate-800">
+          <div className="pt-6 border-t-2 border-slate-900 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs text-slate-800 avoid-break">
             {/* Instructor Signature */}
             <div className="border border-slate-200 p-3.5 rounded-xl space-y-3 bg-white">
               <span className="text-[10px] font-bold text-slate-500 block uppercase">
@@ -459,5 +460,6 @@ export const CourseGradeReportPdfModal: React.FC<CourseGradeReportPdfModalProps>
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 };

@@ -10,14 +10,15 @@ export interface PdfExportOptions {
 
 /**
  * Downloads a DOM element as a real, multi-page vector/raster PDF file.
- * Automatically slices long documents (such as 4-semester graduation transcripts)
- * cleanly into consecutive A4 pages.
+ * Handles SVG images, cross-origin assets, and iframe environments reliably.
  */
 export async function downloadElementAsPdf(
   elementOrId: HTMLElement | string,
   fileName: string = 'document.pdf',
   options: PdfExportOptions = {}
 ): Promise<boolean> {
+  const safeName = fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`;
+
   try {
     const element =
       typeof elementOrId === 'string'
@@ -29,24 +30,45 @@ export async function downloadElementAsPdf(
       return false;
     }
 
-    // Capture element with high pixel ratio for crisp Ethiopian typography & graphics
+    const orientation = options.orientation || 'portrait';
     const scale = options.scale || 2;
+    const a4PixelWidth = orientation === 'landscape' ? 1120 : 800;
+
+    // Capture element with html2canvas (strictly allowTaint: false to prevent SecurityError on toDataURL)
     const canvas = await html2canvas(element, {
       scale,
       useCORS: true,
-      allowTaint: true,
+      allowTaint: false,
       backgroundColor: '#ffffff',
       logging: false,
-      windowWidth: element.scrollWidth || 1024,
+      windowWidth: a4PixelWidth,
       onclone: (clonedDoc, clonedElement) => {
-        // Ensure cloned element is visible and expanded
+        // Ensure cloned element is styled to perfect A4 paper width and fully expanded
         clonedElement.style.overflow = 'visible';
         clonedElement.style.maxHeight = 'none';
         clonedElement.style.height = 'auto';
-        clonedElement.style.width = '100%';
+        clonedElement.style.width = `${a4PixelWidth}px`;
+        clonedElement.style.maxWidth = `${a4PixelWidth}px`;
+        clonedElement.style.minWidth = `${a4PixelWidth}px`;
+        clonedElement.style.margin = '0 auto';
         clonedElement.style.backgroundColor = '#ffffff';
 
-        // Remove any no-print items
+        // Clean any SVG images that might taint canvas by converting to base64 if needed
+        const images = clonedElement.querySelectorAll('img');
+        images.forEach((img) => {
+          img.crossOrigin = 'anonymous';
+          const src = img.getAttribute('src') || '';
+          if (src.startsWith('data:image/svg+xml;utf8,')) {
+            // Convert unencoded svg data uri to base64 data uri to avoid browser tainting
+            try {
+              const svgContent = decodeURIComponent(src.replace('data:image/svg+xml;utf8,', ''));
+              const b64 = btoa(unescape(encodeURIComponent(svgContent)));
+              img.src = `data:image/svg+xml;base64,${b64}`;
+            } catch (_) {}
+          }
+        });
+
+        // Hide no-print items
         const noPrintItems = clonedElement.querySelectorAll('.no-print');
         noPrintItems.forEach((el) => {
           (el as HTMLElement).style.display = 'none';
@@ -55,11 +77,11 @@ export async function downloadElementAsPdf(
     });
 
     const imgData = canvas.toDataURL('image/jpeg', 0.95);
-    const orientation = options.orientation || 'portrait';
     const pdf = new jsPDF({
       orientation,
       unit: 'mm',
-      format: options.format || 'a4'
+      format: options.format || 'a4',
+      compress: true
     });
 
     const pageWidth = pdf.internal.pageSize.getWidth();
@@ -84,12 +106,34 @@ export async function downloadElementAsPdf(
       heightLeft -= pageHeight;
     }
 
-    // Save and trigger file download
-    const safeName = fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`;
-    pdf.save(safeName);
+    // Try standard jsPDF save first, with direct blob fallback for iframe/webview environments
+    try {
+      pdf.save(safeName);
+    } catch (saveErr) {
+      console.warn('pdf.save failed, falling back to Blob download:', saveErr);
+      const blob = pdf.output('blob');
+      const blobUrl = URL.createObjectURL(blob);
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.href = blobUrl;
+      downloadAnchor.download = safeName;
+      downloadAnchor.style.display = 'none';
+      downloadAnchor.target = '_blank';
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+
+      setTimeout(() => {
+        if (downloadAnchor.parentNode) {
+          document.body.removeChild(downloadAnchor);
+        }
+        URL.revokeObjectURL(blobUrl);
+      }, 2000);
+    }
+
     return true;
   } catch (err) {
-    console.error('Error generating PDF download:', err);
+    console.warn('Canvas PDF generation encountered an error, falling back to direct print window:', err);
+    // Graceful fallback: trigger print so user never gets stuck
+    printElementDirectly(elementOrId, { orientation: options.orientation });
     return false;
   }
 }
@@ -98,7 +142,10 @@ export async function downloadElementAsPdf(
  * Cleanly prints an isolated element via a hidden iframe so the main UI,
  * modal dark backdrops, and navigation never appear or cause blank printouts.
  */
-export function printElementDirectly(elementOrId: HTMLElement | string): void {
+export function printElementDirectly(
+  elementOrId: HTMLElement | string,
+  options?: { orientation?: 'portrait' | 'landscape' }
+): void {
   const element =
     typeof elementOrId === 'string'
       ? document.getElementById(elementOrId)
@@ -135,18 +182,20 @@ export function printElementDirectly(elementOrId: HTMLElement | string): void {
       return;
     }
 
+    const printOrientation = options?.orientation || 'portrait';
+
     doc.open();
     doc.write(`
       <!DOCTYPE html>
       <html lang="am">
         <head>
           <meta charset="utf-8" />
-          <title>Print Document</title>
+          <title>ይፋዊ ሰነድ</title>
           ${stylesHtml}
           <style>
             @page {
-              size: A4 portrait;
-              margin: 10mm 12mm;
+              size: A4 ${printOrientation};
+              margin: 8mm 10mm;
             }
             body {
               background: #ffffff !important;
@@ -169,7 +218,7 @@ export function printElementDirectly(elementOrId: HTMLElement | string): void {
           </style>
         </head>
         <body>
-          <div style="width: 100%; background: #ffffff; color: #0f172a;">
+          <div style="width: 100%; background: #ffffff; color: #0f172a; padding: 4px;">
             ${element.outerHTML}
           </div>
         </body>
@@ -190,9 +239,9 @@ export function printElementDirectly(elementOrId: HTMLElement | string): void {
           if (iframe.parentNode) {
             document.body.removeChild(iframe);
           }
-        }, 1500);
+        }, 2000);
       }
-    }, 400);
+    }, 450);
   } catch (err) {
     console.warn('Direct print error, falling back to standard print:', err);
     window.print();

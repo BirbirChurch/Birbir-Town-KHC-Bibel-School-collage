@@ -123,44 +123,54 @@ export const TranscriptModal: React.FC<TranscriptModalProps> = ({
           </div>
         </div>
 
-        {/* Printable Transcript Document */}
-        <div className="p-8 sm:p-12 text-slate-900 bg-white" id="printable-transcript-content">
-          {/* Official Letterhead Header */}
-          <div className="text-center border-b-2 border-slate-900 pb-5 mb-6 relative">
-            <div className="flex justify-center mb-3">
-              <img
-                src={churchLogo || CHURCH_LOGO}
-                alt="የብርብር ከተማ ቃለ ሕይወት ቤተ ክርስቲያን"
-                className="h-24 sm:h-28 w-auto object-contain drop-shadow-sm"
-              />
+        {/* Printable Transcript Document (A4 Optimized) */}
+        <div className="p-3 sm:p-6 bg-slate-100/60 overflow-x-auto">
+          <div
+            className="p-6 sm:p-8 text-slate-900 bg-white a4-portrait-document official-certificate-border shadow-md mx-auto"
+            id="printable-transcript-content"
+          >
+            {/* Official Letterhead Header */}
+            <div className="text-center border-b-2 border-slate-900 pb-4 mb-5 relative">
+              <div className="flex justify-center mb-2.5">
+                <img
+                  src={churchLogo || CHURCH_LOGO}
+                  alt="የብርብር ከተማ ቃለ ሕይወት ቤተ ክርስቲያን"
+                  className="h-20 sm:h-24 w-auto object-contain drop-shadow-xs"
+                />
+              </div>
+              <h1 className="text-xl sm:text-2xl font-black tracking-wide text-slate-900 font-serif-ethiopic leading-tight">
+                የብርብር ከተማ ቃለ ሕይወት ቤተ ክርስቲያን
+              </h1>
+              <h2 className="text-base sm:text-lg font-bold text-slate-800 mt-0.5">
+                መጽሐፍ ቅዱስ ትምህርት ቤት
+              </h2>
+              <p className="text-[11px] uppercase font-semibold text-slate-600 mt-0.5 tracking-wider">
+                Birbir City Kale Heywet Church Bible Training School
+              </p>
+              <div className="mt-2.5 inline-block bg-slate-900 text-white text-xs font-black px-4 py-1 rounded-md tracking-wide">
+                ይፋዊ የሴሚስተር ትራንስክሪፕት (Official Semester Transcript)
+              </div>
+              <p className="text-[10px] text-slate-700 font-bold mt-1">
+                🇪🇹 የዘመን አቆጣጠር፦ እንደ ኢትዮጵያ ዘመን አቆጣጠር (ዓ.ም)
+              </p>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-wide text-slate-900 font-serif-ethiopic">
-              የብርብር ከተማ ቃለ ሕይወት ቤተ ክርስቲያን
-            </h1>
-            <h2 className="text-lg sm:text-xl font-bold text-slate-800 mt-1">
-              መጽሐፍ ቅዱስ ትምህርት ቤት
-            </h2>
-            <p className="text-xs uppercase font-semibold text-slate-600 mt-0.5">
-              Birbir City Kale Heywet Church Bible Training School
-            </p>
-          </div>
 
-          {/* Student & Term Info Grid */}
-          <div className="grid grid-cols-2 gap-4 text-xs font-semibold mb-6 border border-slate-300 p-4 rounded-xl bg-slate-50/60">
-            <div className="space-y-1.5">
-              <p>
-                <span className="text-slate-500 font-normal">የተማሪው ሙሉ ስም:</span>{' '}
-                <span className="font-bold text-slate-950 text-sm">{student.name}</span>
-              </p>
-              <p>
-                <span className="text-slate-500 font-normal">የመለያ ኮድ (ID No):</span>{' '}
-                <span className="font-mono font-bold text-slate-900">{student.id}</span>
-              </p>
-              <p>
-                <span className="text-slate-500 font-normal">ጾታ:</span>{' '}
-                <span className="font-bold text-slate-900">{student.gender}</span>
-              </p>
-            </div>
+            {/* Student & Term Info Grid */}
+            <div className="grid grid-cols-2 gap-3 text-xs font-semibold mb-5 border-2 border-slate-300 p-3.5 rounded-xl bg-slate-50/70">
+              <div className="space-y-1.5">
+                <p>
+                  <span className="text-slate-500 font-normal">የተማሪው ሙሉ ስም:</span>{' '}
+                  <span className="font-extrabold text-slate-950 text-sm">{student.name}</span>
+                </p>
+                <p>
+                  <span className="text-slate-500 font-normal">የመለያ ኮድ (ID No):</span>{' '}
+                  <span className="font-mono font-black text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-300">{student.id}</span>
+                </p>
+                <p>
+                  <span className="text-slate-500 font-normal">ጾታ (Gender):</span>{' '}
+                  <span className="font-bold text-slate-900">{student.gender}</span>
+                </p>
+              </div>
 
             <div className="space-y-1.5 text-right sm:text-left">
               <p>
@@ -247,7 +257,7 @@ export const TranscriptModal: React.FC<TranscriptModalProps> = ({
           </div>
 
           {/* Official Signatures & Stamp */}
-          <div className="relative pt-6 border-t border-slate-300 max-w-2xl mx-auto">
+          <div className="relative pt-6 border-t-2 border-slate-300 max-w-2xl mx-auto avoid-break">
             {/* Optional Official Stamp inserted if enabled by Dean or Admin */}
             {officialConfig?.showStamp && (
               <div className="absolute left-1/2 -top-4 transform -translate-x-1/2 flex flex-col items-center pointer-events-none opacity-95 z-10">
@@ -318,5 +328,6 @@ export const TranscriptModal: React.FC<TranscriptModalProps> = ({
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 };

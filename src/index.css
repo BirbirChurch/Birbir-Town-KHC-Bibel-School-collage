@@ -125,10 +125,53 @@
     border-color: #94a3b8 !important;
   }
 
+  .a4-portrait-document,
+  .a4-landscape-document {
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .page-break {
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+
+  .avoid-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
   @page {
-    margin: 0.8cm;
+    margin: 8mm 10mm;
     size: A4 portrait;
   }
+}
+
+/* Official A4 Document Presentation Styles */
+.a4-portrait-document {
+  width: 100%;
+  max-width: 210mm;
+  margin: 0 auto;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+.a4-landscape-document {
+  width: 100%;
+  max-width: 297mm;
+  margin: 0 auto;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+.official-certificate-border {
+  border: 2px solid #064e3b;
+  outline: 4px double #b45309;
+  outline-offset: 2px;
+  border-radius: 12px;
 }
 
 @media screen {
