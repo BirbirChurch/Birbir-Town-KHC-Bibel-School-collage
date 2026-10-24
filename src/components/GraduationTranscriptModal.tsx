@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { X, Printer, Download, Award, CheckCircle2, ShieldCheck, GraduationCap, Calendar, BookOpen, Loader2 } from 'lucide-react';
+import { X, Printer, Download, Award, CheckCircle2, ShieldCheck, GraduationCap, Calendar, BookOpen, Loader2, Lock } from 'lucide-react';
 import { Course, GradeBreakdown, OfficialSignaturesConfig, Student } from '../types.ts';
 import { calculateGradeDetails, getCourseAssessmentItems, getEffectiveGradeValues, getGradeKey, resolveGradeBreakdown } from '../utils/gradeCalculations.ts';
 import { getCurriculumForStudent } from '../data/curriculumCourses.ts';
@@ -15,6 +15,8 @@ interface GraduationTranscriptModalProps {
   officialConfig?: OfficialSignaturesConfig;
   churchLogo?: string;
   onClose: () => void;
+  allowPdfPrint?: boolean;
+  isStudentViewer?: boolean;
 }
 
 export const GraduationTranscriptModal: React.FC<GraduationTranscriptModalProps> = ({
@@ -25,7 +27,9 @@ export const GraduationTranscriptModal: React.FC<GraduationTranscriptModalProps>
   currentSemester,
   officialConfig,
   churchLogo,
-  onClose
+  onClose,
+  allowPdfPrint = true,
+  isStudentViewer = false
 }) => {
   const curriculum = useMemo(() => getCurriculumForStudent(student), [student]);
 
@@ -160,6 +164,7 @@ export const GraduationTranscriptModal: React.FC<GraduationTranscriptModalProps>
   const [isBwMode, setIsBwMode] = useState(false);
 
   const handleDownloadPdf = async () => {
+    if (!allowPdfPrint) return;
     setIsExportingPdf(true);
     try {
       const filename = `Official_Graduation_Transcript_${student.id || student.name}_${student.program}.pdf`;
@@ -170,10 +175,12 @@ export const GraduationTranscriptModal: React.FC<GraduationTranscriptModalProps>
   };
 
   const handlePrint = () => {
+    if (!allowPdfPrint) return;
     printElementDirectly('printable-graduation-transcript');
   };
 
   const handleDownloadCSV = () => {
+    if (!allowPdfPrint) return;
     let csv = `\uFEFFየተማሪ ሙሉ ስም,"${student.name}"\n`;
     csv += `የተማሪ መለያ ቁጥር,"${student.id}"\n`;
     csv += `የትምህርት ፕሮግራም,"${student.program}"\n`;
@@ -216,6 +223,11 @@ export const GraduationTranscriptModal: React.FC<GraduationTranscriptModalProps>
                 <span className="bg-amber-400/20 text-amber-300 text-[10px] px-2 py-0.5 rounded font-mono">
                   🇪🇹 እንደ ኢትዮጵያ ዘመን አቆጣጠር
                 </span>
+                {!allowPdfPrint && (
+                  <span className="bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] px-2 py-0.5 rounded-full font-bold ml-1">
+                    ቅድመ-እይታ ብቻ (ማተም ታግዷል)
+                  </span>
+                )}
               </h3>
               <p className="text-[11px] text-slate-300">
                 የተማሩበትን ሙሉ ትምህርት (ሁሉንም ሴሚስተሮች) በአንድ ላይ የሚያሳይ ይፋዊ የምረቃ ሰነድ
@@ -239,39 +251,51 @@ export const GraduationTranscriptModal: React.FC<GraduationTranscriptModalProps>
               <span>{isBwMode ? '🖨️ ጥቁርና ነጭ (B&W ON)' : '🌈 በቀለም (Color View)'}</span>
             </button>
 
-            <button
-              type="button"
-              onClick={handleDownloadPdf}
-              disabled={isExportingPdf}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3.5 py-2 rounded-xl font-bold transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-60"
-              title="ሙሉውን የምረቃ ትራንስክሪፕት በፒዲኤፍ (.pdf) ፋይል በቀጥታ አውርድ"
-            >
-              {isExportingPdf ? (
-                <Loader2 className="w-4 h-4 animate-spin text-white" />
-              ) : (
-                <Download className="w-4 h-4 text-white" />
-              )}
-              <span>{isExportingPdf ? 'ፒዲኤፍ እየተዘጋጀ...' : 'PDF አውርድ (.pdf)'}</span>
-            </button>
+            {!allowPdfPrint ? (
+              <div
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-950/90 text-rose-300 border border-rose-700/80 text-xs font-bold shadow-xs select-none"
+                title="ለተማሪዎች ማተምና ማውረድ አልተፈቀደም (በጽሕፈት ቤት ብቻ ይታተማል)"
+              >
+                <Lock className="w-4 h-4 text-rose-400" />
+                <span>🔒 ፒዲኤፍ ማተም ታግዷል</span>
+              </div>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={handleDownloadPdf}
+                  disabled={isExportingPdf}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3.5 py-2 rounded-xl font-bold transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-60"
+                  title="ሙሉውን የምረቃ ትራንስክሪፕት በፒዲኤፍ (.pdf) ፋይል በቀጥታ አውርድ"
+                >
+                  {isExportingPdf ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-white" />
+                  ) : (
+                    <Download className="w-4 h-4 text-white" />
+                  )}
+                  <span>{isExportingPdf ? 'ፒዲኤፍ እየተዘጋጀ...' : 'PDF አውርድ (.pdf)'}</span>
+                </button>
 
-            <button
-              type="button"
-              onClick={handleDownloadCSV}
-              className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3 py-2 rounded-xl font-bold transition-colors flex items-center gap-1.5 cursor-pointer border border-slate-700"
-              title="በCSV ሰነድ አውርድ"
-            >
-              <Download className="w-3.5 h-3.5 text-emerald-400" />
-              <span>CSV</span>
-            </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadCSV}
+                  className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3 py-2 rounded-xl font-bold transition-colors flex items-center gap-1.5 cursor-pointer border border-slate-700"
+                  title="በCSV ሰነድ አውርድ"
+                >
+                  <Download className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>CSV</span>
+                </button>
 
-            <button
-              type="button"
-              onClick={handlePrint}
-              className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs px-3.5 py-2 rounded-xl font-bold shadow-md transition-colors flex items-center gap-1.5 cursor-pointer"
-            >
-              <Printer className="w-4 h-4 text-amber-300" />
-              <span>አትም (Print)</span>
-            </button>
+                <button
+                  type="button"
+                  onClick={handlePrint}
+                  className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs px-3.5 py-2 rounded-xl font-bold shadow-md transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Printer className="w-4 h-4 text-amber-300" />
+                  <span>አትም (Print)</span>
+                </button>
+              </>
+            )}
 
             <button
               type="button"
@@ -285,6 +309,14 @@ export const GraduationTranscriptModal: React.FC<GraduationTranscriptModalProps>
 
         {/* Printable Official Document (A4 Multi-page Optimized) */}
         <div className="p-3 sm:p-6 bg-slate-100/60 overflow-x-auto">
+          {!allowPdfPrint && (
+            <div className="max-w-[210mm] mx-auto mb-3 p-3 bg-rose-50 border-2 border-rose-300 rounded-2xl text-xs text-rose-950 flex items-center gap-2.5 font-bold no-print shadow-xs">
+              <Lock className="w-4 h-4 text-rose-600 flex-shrink-0" />
+              <span>
+                🔒 ይፋዊ ማሳሰቢያ፦ የዚህ የተሟላ የምረቃ ትራንስክሪፕት ሰነድ በፒዲኤፍ ማተም ወይም ማውረድ አልተፈቀደም። ሰነዱን ማየት ብቻ ይችላሉ፤ ይፋዊ የታተመ ሰነድ ከዋናው ጽሕፈት ቤት ይሰጣል።
+              </span>
+            </div>
+          )}
           <div
             className={`p-6 sm:p-10 text-slate-900 bg-white a4-portrait-document official-certificate-border shadow-md mx-auto ${
               isBwMode ? 'bw-mode-active' : ''

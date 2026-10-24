@@ -91,11 +91,11 @@ export const Header: React.FC<HeaderProps> = ({
                     </span>
                   </div>
 
-                  {onOpenArchiveModal && (
+                  {onOpenArchiveModal && (currentUser.role === 'ADMIN' || currentUser.role === 'DEAN') && (
                     <button
                       onClick={onOpenArchiveModal}
                       className="inline-flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs px-3 py-1.5 rounded-lg shadow-sm transition-colors cursor-pointer"
-                      title="የቀደሙ ሥራዎችና የተማሪዎች ውጤት ማህደር መፈለጊያ"
+                      title="የቀደሙ ሥራዎችና የተማሪዎች ውጤት ማህደር መፈለጊያ (ለዋና አድሚንና ዋና ዲን ብቻ)"
                     >
                       <History className="w-3.5 h-3.5 text-slate-950" />
                       <span>🔍 የቀደሙ ሥራዎችና ማህደር</span>

@@ -18,9 +18,12 @@ import {
   Save,
   Upload,
   FileSpreadsheet,
-  GraduationCap
+  GraduationCap,
+  History,
+  Lock
 } from 'lucide-react';
 import { Course, GradeBreakdown, OfficialSignaturesConfig, ProgramType, Student } from '../types.ts';
+import { sortStudentsByAmharicName } from '../utils/amharicSort.ts';
 import { calculateGradeDetails, calculateStudentGPA, getCourseAssessmentConfig, getCourseAssessmentItems, getCriterionScore, getEffectiveGradeValues, getGradeKey } from '../utils/gradeCalculations.ts';
 import { getCriterionColor } from './TeacherPortal.tsx';
 import { OfficialSignaturesManager } from './OfficialSignaturesManager.tsx';
@@ -39,6 +42,10 @@ interface DeanPortalProps {
   onAddAcademicYear: (year: string) => void;
   gradePublished: boolean;
   onToggleGradePublication: () => void;
+  studentPdfPrintAllowed?: boolean;
+  onToggleStudentPdfPrint?: () => void;
+  onOpenReleaseManager?: () => void;
+  onOpenArchiveModal?: () => void;
   courses: Course[];
   students: Student[];
   teachers: string[];
@@ -68,6 +75,10 @@ export const DeanPortal: React.FC<DeanPortalProps> = ({
   onAddAcademicYear,
   gradePublished,
   onToggleGradePublication,
+  studentPdfPrintAllowed,
+  onToggleStudentPdfPrint,
+  onOpenReleaseManager,
+  onOpenArchiveModal,
   courses,
   students,
   teachers,
@@ -123,8 +134,9 @@ export const DeanPortal: React.FC<DeanPortalProps> = ({
 
   const selectedSupervisedCourse = courses.find((c) => c.id === superviseCourseId) || courses[0];
   const supervisedStudents = selectedSupervisedCourse
-    ? students.filter((s) => s.program === selectedSupervisedCourse.program)
+    ? sortStudentsByAmharicName(students.filter((s) => s.program === selectedSupervisedCourse.program))
     : [];
+
 
   const handleCreateYear = (e: React.FormEvent) => {
     e.preventDefault();
@@ -329,27 +341,77 @@ export const DeanPortal: React.FC<DeanPortalProps> = ({
             </select>
           </div>
 
-          {/* Grade Approval / Publish Button */}
-          <button
-            onClick={onToggleGradePublication}
-            className={`px-3.5 py-2 text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer ${
-              gradePublished
-                ? 'bg-emerald-700 hover:bg-emerald-800 text-white'
-                : 'bg-amber-600 hover:bg-amber-700 text-white'
-            }`}
-          >
-            {gradePublished ? (
-              <>
-                <CheckCircle2 className="w-4 h-4" />
-                <span>ውጤት ጸድቋል / ይፋ ሆኗል</span>
-              </>
-            ) : (
-              <>
-                <EyeOff className="w-4 h-4" />
-                <span>ውጤት ለማጽደቅ በመጠባበቅ ላይ (Hidden)</span>
-              </>
+          {/* Grade Approval / Publish Buttons */}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={onToggleGradePublication}
+              className={`px-3.5 py-2 text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer ${
+                gradePublished
+                  ? 'bg-emerald-700 hover:bg-emerald-800 text-white'
+                  : 'bg-amber-600 hover:bg-amber-700 text-white'
+              }`}
+            >
+              {gradePublished ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>🌐 ለሁሉም አሳይ</span>
+                </>
+              ) : (
+                <>
+                  <EyeOff className="w-4 h-4" />
+                  <span>🔒 ለሁሉም እገድ</span>
+                </>
+              )}
+            </button>
+
+            {onToggleStudentPdfPrint && (
+              <button
+                type="button"
+                onClick={onToggleStudentPdfPrint}
+                className={`px-3.5 py-2 text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer ${
+                  studentPdfPrintAllowed
+                    ? 'bg-indigo-700 hover:bg-indigo-800 text-white'
+                    : 'bg-slate-700 hover:bg-slate-800 text-amber-300'
+                }`}
+                title="የተማሪዎችን የፒዲኤፍ ማተም ሁነታ ያብሩ/ያጥፉ"
+              >
+                {studentPdfPrintAllowed ? (
+                  <>
+                    <Printer className="w-4 h-4 text-amber-300" />
+                    <span>🖨️ ፒዲኤፍ ማተም ተፈቅዷል</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-4 h-4 text-amber-400" />
+                    <span>🚫 ፒዲኤፍ ማተም ታግዷል</span>
+                  </>
+                )}
+              </button>
             )}
-          </button>
+
+            {onOpenReleaseManager && (
+              <button
+                type="button"
+                onClick={onOpenReleaseManager}
+                className="bg-indigo-700 hover:bg-indigo-800 text-white font-extrabold text-xs px-3.5 py-2 rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+                title="በተማሪዎች መርጦ ውጤትና ትራንስክሪፕት መፍቀጃና ማገጃ"
+              >
+                <span>🔒 በልዩነት መርጦ መፍቀድ/ማገድ</span>
+              </button>
+            )}
+
+            {onOpenArchiveModal && (
+              <button
+                type="button"
+                onClick={onOpenArchiveModal}
+                className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs px-3.5 py-2 rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+                title="የቀደሙ ሥራዎችና ማህደር መፈለጊያ ማዕከል"
+              >
+                <History className="w-4 h-4 text-slate-950" />
+                <span>🔍 የቀደሙ ሥራዎችና ማህደር</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -832,8 +894,9 @@ export const DeanPortal: React.FC<DeanPortalProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {students.map((s, idx) => {
+                {sortStudentsByAmharicName(students).map((s, idx) => {
                   const gpa = calculateStudentGPA(s, courses, grades, currentYear, currentSemester);
+
                   return (
                     <tr key={s.uid} className="hover:bg-slate-50">
                       <td className="p-2.5 font-mono text-slate-400">{idx + 1}</td>

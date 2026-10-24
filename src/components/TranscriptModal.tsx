@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Printer, ShieldCheck, Download, Loader2 } from 'lucide-react';
+import { X, Printer, ShieldCheck, Download, Loader2, Lock } from 'lucide-react';
 import { Course, GradeBreakdown, OfficialSignaturesConfig, Student } from '../types.ts';
 import { calculateGradeDetails, calculateStudentGPA, getCourseAssessmentItems, getEffectiveGradeValues, getGradeKey, resolveGradeBreakdown } from '../utils/gradeCalculations.ts';
 import { OFFICIAL_GRADING_SCALE } from '../data/initialData.ts';
@@ -15,6 +15,8 @@ interface TranscriptModalProps {
   onClose: () => void;
   churchLogo?: string;
   officialConfig?: OfficialSignaturesConfig;
+  allowPdfPrint?: boolean;
+  isStudentViewer?: boolean;
 }
 
 export const TranscriptModal: React.FC<TranscriptModalProps> = ({
@@ -25,7 +27,9 @@ export const TranscriptModal: React.FC<TranscriptModalProps> = ({
   currentSemester,
   onClose,
   churchLogo,
-  officialConfig
+  officialConfig,
+  allowPdfPrint = true,
+  isStudentViewer = false
 }) => {
   const studentCourses = courses.filter((c) => c.program === student.program);
   const gpa = calculateStudentGPA(student, courses, grades, currentYear, currentSemester);
@@ -69,6 +73,7 @@ export const TranscriptModal: React.FC<TranscriptModalProps> = ({
   const [isBwMode, setIsBwMode] = useState(false);
 
   const handleDownloadPdf = async () => {
+    if (!allowPdfPrint) return;
     setIsExportingPdf(true);
     try {
       const filename = `Transcript_${student.id || student.name}_${currentYear}_Sem${currentSemester}.pdf`;
@@ -79,6 +84,7 @@ export const TranscriptModal: React.FC<TranscriptModalProps> = ({
   };
 
   const handlePrint = () => {
+    if (!allowPdfPrint) return;
     printElementDirectly('printable-transcript-content');
   };
 
@@ -90,6 +96,11 @@ export const TranscriptModal: React.FC<TranscriptModalProps> = ({
           <div className="flex items-center gap-2">
             <Printer className="w-5 h-5 text-amber-400" />
             <h3 className="font-bold text-sm">የትራንስክሪፕት ቅድመ-እይታ (Transcript Preview)</h3>
+            {!allowPdfPrint && (
+              <span className="bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] px-2 py-0.5 rounded-full font-bold">
+                ቅድመ-እይታ ብቻ (ማተም ታግዷል)
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             {/* Black & White Ink Saver Print Mode Toggle */}
@@ -107,28 +118,41 @@ export const TranscriptModal: React.FC<TranscriptModalProps> = ({
               <span>{isBwMode ? '🖨️ ጥቁርና ነጭ (B&W ON)' : '🌈 በቀለም (Color View)'}</span>
             </button>
 
-            <button
-              type="button"
-              onClick={handleDownloadPdf}
-              disabled={isExportingPdf}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3.5 py-2 rounded-xl font-bold shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
-              title="ትራንስክሪፕቱን በፒዲኤፍ (.pdf) ፋይል በቀጥታ አውርድ"
-            >
-              {isExportingPdf ? (
-                <Loader2 className="w-4 h-4 animate-spin text-white" />
-              ) : (
-                <Download className="w-4 h-4 text-white" />
-              )}
-              <span>{isExportingPdf ? 'ፒዲኤፍ እየተዘጋጀ...' : 'PDF አውርድ (.pdf)'}</span>
-            </button>
-            <button
-              type="button"
-              onClick={handlePrint}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3.5 py-2 rounded-xl font-bold shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer"
-            >
-              <Printer className="w-4 h-4" />
-              <span>አትም (Print)</span>
-            </button>
+            {!allowPdfPrint ? (
+              <div
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-950/90 text-rose-300 border border-rose-700/80 text-xs font-bold shadow-xs select-none"
+                title="ለተማሪዎች ማተምና ማውረድ አልተፈቀደም (በጽሕፈት ቤት ብቻ ይታተማል)"
+              >
+                <Lock className="w-4 h-4 text-rose-400" />
+                <span>🔒 ፒዲኤፍ ማተም ታግዷል</span>
+              </div>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={handleDownloadPdf}
+                  disabled={isExportingPdf}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3.5 py-2 rounded-xl font-bold shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
+                  title="ትራንስክሪፕቱን በፒዲኤፍ (.pdf) ፋይል በቀጥታ አውርድ"
+                >
+                  {isExportingPdf ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-white" />
+                  ) : (
+                    <Download className="w-4 h-4 text-white" />
+                  )}
+                  <span>{isExportingPdf ? 'ፒዲኤፍ እየተዘጋጀ...' : 'PDF አውርድ (.pdf)'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handlePrint}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3.5 py-2 rounded-xl font-bold shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>አትም (Print)</span>
+                </button>
+              </>
+            )}
+
             <button
               type="button"
               onClick={onClose}
@@ -141,6 +165,15 @@ export const TranscriptModal: React.FC<TranscriptModalProps> = ({
 
         {/* Printable Transcript Document (A4 Optimized) */}
         <div className="p-3 sm:p-6 bg-slate-100/60 overflow-x-auto">
+          {!allowPdfPrint && (
+            <div className="max-w-[210mm] mx-auto mb-3 p-3 bg-rose-50 border-2 border-rose-300 rounded-2xl text-xs text-rose-950 flex items-center gap-2.5 font-bold no-print shadow-xs">
+              <Lock className="w-4 h-4 text-rose-600 flex-shrink-0" />
+              <span>
+                🔒 ይፋዊ ማሳሰቢያ፦ የትራንስክሪፕት ሰነዱን ማየት ተፈቅዶልዎታል፤ ነገር ግን በፒዲኤፍ ማተም ወይም ማውረድ አልተፈቀደም። ይፋዊ የታተመ ሰነድ ከጽሕፈት ቤት በዋና ማኅተም ታትሞ ይሰጣል።
+              </span>
+            </div>
+          )}
+
           <div
             className={`p-6 sm:p-8 text-slate-900 bg-white a4-portrait-document official-certificate-border shadow-md mx-auto ${
               isBwMode ? 'bw-mode-active' : ''

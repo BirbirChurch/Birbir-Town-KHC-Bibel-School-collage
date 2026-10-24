@@ -28,6 +28,7 @@ import {
   Upload
 } from 'lucide-react';
 import { Course, GradeBreakdown, OfficialSignaturesConfig, ProgramType, Student, UserRole } from '../types.ts';
+import { sortStudentsByAmharicName } from '../utils/amharicSort.ts';
 import {
   calculateGradeDetails,
   calculateStudentGPA,
@@ -90,10 +91,12 @@ export const GraduationManager: React.FC<GraduationManagerProps> = ({
 
   // Dedicated 2018.. Diploma Graduates Grading State
   const diploma2018Students = useMemo(() => {
-    return students.filter(
+    const list = students.filter(
       (s) => s.program === 'Diploma' && (s.admissionYear === '2018' || s.id.startsWith('2018'))
     );
+    return sortStudentsByAmharicName(list);
   }, [students]);
+
 
   // Historical 2018 Courses State
   const [historical2018Courses, setHistorical2018Courses] = useState<Course[]>(() => loadHistorical2018Courses());
@@ -338,27 +341,32 @@ export const GraduationManager: React.FC<GraduationManagerProps> = ({
     showNotify(`ተማሪው በ${currentYear} ዓ.ም (${currentSemester}ኛ ሴሚስተር) በይፋ ተመርቆ ወደ ተመራቂዎች ማህደር ተመዝግቧል!`, 'success');
   };
 
-  // Filter students for Verification Tab
-  const candidateStudents = students.filter((s) => {
-    const matchesSearch =
-      s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.id.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesProg = programFilter === 'ALL' || s.program === programFilter;
-    const matchesYear = yearFilter === 'ALL' || s.currentStudyYear === yearFilter;
-    const matchesStatus = statusFilter === 'ALL' || (s.graduationStatus || 'ACTIVE') === statusFilter;
-    return matchesSearch && matchesProg && matchesYear && matchesStatus;
-  });
+  // Filter students for Verification Tab (sorted in Amharic fidel order)
+  const candidateStudents = sortStudentsByAmharicName(
+    students.filter((s) => {
+      const matchesSearch =
+        s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.id.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesProg = programFilter === 'ALL' || s.program === programFilter;
+      const matchesYear = yearFilter === 'ALL' || s.currentStudyYear === yearFilter;
+      const matchesStatus = statusFilter === 'ALL' || (s.graduationStatus || 'ACTIVE') === statusFilter;
+      return matchesSearch && matchesProg && matchesYear && matchesStatus;
+    })
+  );
 
-  // Filter students for Archive Tab
-  const archivedGraduates = students.filter((s) => {
-    const matchesSearch =
-      s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.id.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesProg = programFilter === 'ALL' || s.program === programFilter;
-    const isGrad = s.graduationStatus === 'GRADUATED';
-    const matchesYear = archiveYearFilter === 'ALL' || (s.graduationYear || currentYear) === archiveYearFilter;
-    return matchesSearch && matchesProg && isGrad && matchesYear;
-  });
+  // Filter students for Archive Tab (sorted in Amharic fidel order)
+  const archivedGraduates = sortStudentsByAmharicName(
+    students.filter((s) => {
+      const matchesSearch =
+        s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.id.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesProg = programFilter === 'ALL' || s.program === programFilter;
+      const isGrad = s.graduationStatus === 'GRADUATED';
+      const matchesYear = archiveYearFilter === 'ALL' || (s.graduationYear || currentYear) === archiveYearFilter;
+      return matchesSearch && matchesProg && isGrad && matchesYear;
+    })
+  );
+
 
   // Handle Score Input in Dedicated Grading Tab
   const handleGradingScoreChange = (

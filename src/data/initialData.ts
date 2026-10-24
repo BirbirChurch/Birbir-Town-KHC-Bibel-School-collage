@@ -1,4 +1,5 @@
 import { GradingScaleItem, Student, Course } from '../types.ts';
+import { sortStudentsByAmharicName } from '../utils/amharicSort.ts';
 
 // Official 13-Tier Grading Scale Requested by User
 export const OFFICIAL_GRADING_SCALE: GradingScaleItem[] = [
@@ -30,9 +31,8 @@ export const PRELOADED_TEACHERS: string[] = [
   'አልተመደበም (—)'
 ];
 
-// Exact Diploma Student Roster (35 Students)
-// Exactly 10 students are in 2nd Year (2ኛ ዓመት - admissionYear: 2018) who are graduation candidates
-export const PRELOADED_STUDENTS_DIPLOMA: Student[] = [
+// Raw Diploma Student Roster (35 Students)
+const RAW_STUDENTS_DIPLOMA: Student[] = [
   // 10 Students in 2nd Year (በዚህ ዓመት 2ኛ ዓመት እየተማሩ ያሉ 10 ተማሪዎች - 4 ሴሚስተር)
   { uid: 'dip_201801', id: '201801', name: 'አስራት ዳንኤል', gender: 'ወንድ', program: 'Diploma', admissionYear: '2018', currentStudyYear: 2, graduationStatus: 'CANDIDATE' },
   { uid: 'dip_201802', id: '201802', name: 'አማኑኤል ባሳ', gender: 'ወንድ', program: 'Diploma', admissionYear: '2018', currentStudyYear: 2, graduationStatus: 'CANDIDATE' },
@@ -73,9 +73,8 @@ export const PRELOADED_STUDENTS_DIPLOMA: Student[] = [
   { uid: 'dip_201926', id: '201926', name: 'አበራሽ አዳዬ', gender: 'ሴት', program: 'Diploma', admissionYear: '2019', currentStudyYear: 1, graduationStatus: 'ACTIVE' }
 ];
 
-// Exact Degree Student Roster (35 Students)
-// Includes Degree students with Prior Bible Diploma (2-Year track / 4 Semesters) and Regular Degree students (3-Year track)
-export const PRELOADED_STUDENTS_DEGREE: Student[] = [
+// Raw Degree Student Roster (35 Students)
+const RAW_STUDENTS_DEGREE: Student[] = [
   // 10 Students in Degree with Prior Bible Diploma (የ2 ዓመት ድግሪ - 4 ሴሚስተር - ተማራቂዎች)
   { uid: 'deg_201901', id: '201901', name: 'ሕዝቅኤል ፁንቃ', gender: 'ወንድ', program: 'Degree', degreeTrack: '2_YEAR', priorDiploma: true, admissionYear: '2018', currentStudyYear: 2, graduationStatus: 'CANDIDATE' },
   { uid: 'deg_201902', id: '201902', name: 'መሐመድ ሀርቶ', gender: 'ወንድ', program: 'Degree', degreeTrack: '2_YEAR', priorDiploma: true, admissionYear: '2018', currentStudyYear: 2, graduationStatus: 'CANDIDATE' },
@@ -118,10 +117,15 @@ export const PRELOADED_STUDENTS_DEGREE: Student[] = [
   { uid: 'deg_201935', id: '201935', name: 'ትክክሏ ሴባ', gender: 'ሴት', program: 'Degree', degreeTrack: '3_YEAR', priorDiploma: false, admissionYear: '2019', currentStudyYear: 1, graduationStatus: 'ACTIVE' }
 ];
 
-export const PRELOADED_STUDENTS: Student[] = [
-  ...PRELOADED_STUDENTS_DIPLOMA,
-  ...PRELOADED_STUDENTS_DEGREE
-];
+// Pre-sorted student rosters in official Amharic Fidel alphabetical order (ሀ እስከ ፐ)
+export const PRELOADED_STUDENTS_DIPLOMA: Student[] = sortStudentsByAmharicName(RAW_STUDENTS_DIPLOMA);
+export const PRELOADED_STUDENTS_DEGREE: Student[] = sortStudentsByAmharicName(RAW_STUDENTS_DEGREE);
+
+export const PRELOADED_STUDENTS: Student[] = sortStudentsByAmharicName([
+  ...RAW_STUDENTS_DIPLOMA,
+  ...RAW_STUDENTS_DEGREE
+]);
+
 
 // Exact Course Allocations
 export const PRELOADED_COURSES: Course[] = [
@@ -296,6 +300,105 @@ export function generateTeacherKey(teacherName: string, index = 1): string {
   return `BK-${prefix}-${rand}`;
 }
 
+// Predefined distinct student passkeys (ST-XXXX) completely separate from Student ID codes
+export const DEFAULT_STUDENT_PASSKEYS: Record<string, string> = {
+  // Diploma 2nd Year (Graduation Candidates)
+  'dip_201801': 'ST-7182',
+  'dip_201802': 'ST-4921',
+  'dip_201803': 'ST-3814',
+  'dip_201804': 'ST-6291',
+  'dip_201805': 'ST-5142',
+  'dip_201806': 'ST-8231',
+  'dip_201807': 'ST-9345',
+  'dip_201808': 'ST-4172',
+  'dip_201811': 'ST-6351',
+  'dip_201810': 'ST-5428',
+
+  // Diploma 1st Year Students
+  'dip_201901': 'ST-8142',
+  'dip_201902': 'ST-3918',
+  'dip_201903': 'ST-7241',
+  'dip_201904': 'ST-6153',
+  'dip_201905': 'ST-4291',
+  'dip_201906': 'ST-5382',
+  'dip_201907': 'ST-9214',
+  'dip_201908': 'ST-3482',
+  'dip_201909': 'ST-7519',
+  'dip_201910': 'ST-6425',
+  'dip_201911': 'ST-8319',
+  'dip_201912': 'ST-4721',
+  'dip_201913': 'ST-5932',
+  'dip_201914': 'ST-7164',
+  'dip_201915': 'ST-3849',
+  'dip_201916': 'ST-9512',
+  'dip_201917': 'ST-6284',
+  'dip_201918': 'ST-4195',
+  'dip_201919': 'ST-8371',
+  'dip_201920': 'ST-5264',
+  'dip_201921': 'ST-7439',
+  'dip_201922': 'ST-3915',
+  'dip_201924': 'ST-6821',
+  'dip_201925': 'ST-4592',
+  'dip_201926': 'ST-8147',
+
+  // Degree 2nd Year (Prior Bible Diploma Candidates)
+  'deg_201901': 'ST-3619',
+  'deg_201902': 'ST-7524',
+  'deg_201903': 'ST-4819',
+  'deg_201904': 'ST-9263',
+  'deg_201905': 'ST-5371',
+  'deg_201906': 'ST-8145',
+  'deg_201907': 'ST-6294',
+  'deg_201908': 'ST-4738',
+  'deg_201909': 'ST-3912',
+  'deg_201910': 'ST-8521',
+
+  // Degree 2nd Year Regular Students
+  'deg_201911': 'ST-7419',
+  'deg_201912': 'ST-5823',
+  'deg_201913': 'ST-6194',
+  'deg_201914': 'ST-4381',
+  'deg_201915': 'ST-9257',
+  'deg_201916': 'ST-3714',
+  'deg_201917': 'ST-8462',
+  'deg_201918': 'ST-5193',
+  'deg_201919': 'ST-7628',
+  'deg_201920': 'ST-4931',
+
+  // Degree 1st Year Regular Students
+  'deg_201921': 'ST-8274',
+  'deg_201922': 'ST-6319',
+  'deg_201923': 'ST-5482',
+  'deg_201924': 'ST-7195',
+  'deg_201925': 'ST-3826',
+  'deg_201926': 'ST-9418',
+  'deg_201927': 'ST-4752',
+  'deg_201928': 'ST-8631',
+  'deg_201929': 'ST-5294',
+  'deg_201930': 'ST-7381',
+  'deg_201931': 'ST-6149',
+  'deg_201932': 'ST-4893',
+  'deg_201933': 'ST-9527',
+  'deg_201934': 'ST-3418',
+  'deg_201935': 'ST-8762'
+};
+
+/**
+ * Generates a distinct confidential student passkey (ST-XXXX) separate from their Student ID.
+ */
+export function generateStudentPasskey(student: { uid: string; id: string; name?: string }, index = 1): string {
+  if (DEFAULT_STUDENT_PASSKEYS[student.uid]) {
+    return DEFAULT_STUDENT_PASSKEYS[student.uid];
+  }
+  let hash = 0;
+  const str = `${student.uid}_pass_${index}`;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash * 31 + str.charCodeAt(i)) % 9000;
+  }
+  const code = 1000 + Math.abs(hash);
+  return `ST-${code}`;
+}
+
 // Generate individual passwords for all users
 export function generateInitialUserPasswords(): Record<string, string> {
   const p: Record<string, string> = {
@@ -311,10 +414,11 @@ export function generateInitialUserPasswords(): Record<string, string> {
     }
   });
 
-  // Each student gets their own individual password (default: their Student ID)
-  PRELOADED_STUDENTS.forEach(s => {
-    p[s.uid] = s.id;
+  // Each student gets their own distinct passkey (ST-XXXX) — NEVER their Student ID code!
+  PRELOADED_STUDENTS.forEach((s, idx) => {
+    p[s.uid] = DEFAULT_STUDENT_PASSKEYS[s.uid] || generateStudentPasskey(s, idx + 1);
   });
 
   return p;
 }
+

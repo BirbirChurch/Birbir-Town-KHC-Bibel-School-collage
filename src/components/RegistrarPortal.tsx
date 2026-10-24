@@ -16,7 +16,8 @@ import {
   Save,
   GraduationCap,
   EyeOff,
-  Lock
+  Lock,
+  ShieldAlert
 } from 'lucide-react';
 import { Course, GradeBreakdown, OfficialSignaturesConfig, ProgramType, Student } from '../types.ts';
 import { calculateGradeDetails, calculateStudentGPA, getCourseAssessmentItems, getCriterionScore, getEffectiveGradeValues, getGradeKey } from '../utils/gradeCalculations.ts';
@@ -26,6 +27,9 @@ import { CourseGradeReportPdfModal } from './CourseGradeReportPdfModal.tsx';
 import { exportCourseGradesToExcel, exportMasterSemesterGradeSheetToExcel } from '../utils/excelUtils.ts';
 import { GraduationManager } from './GraduationManager.tsx';
 import { MasterGradeReportPdfModal } from './MasterGradeReportPdfModal.tsx';
+import { StudentCredentialsModal } from './StudentCredentialsModal.tsx';
+import { sortStudentsByAmharicName } from '../utils/amharicSort.ts';
+import { DEFAULT_STUDENT_PASSKEYS, generateStudentPasskey } from '../data/initialData.ts';
 
 interface RegistrarPortalProps {
   students: Student[];
@@ -37,6 +41,9 @@ interface RegistrarPortalProps {
   availableYears?: string[];
   gradePublished?: boolean;
   onToggleGradePublication?: () => void;
+  studentPdfPrintAllowed?: boolean;
+  onToggleStudentPdfPrint?: () => void;
+  onOpenReleaseManager?: () => void;
   onOpenAddStudent: () => void;
   onOpenPhotoModal: (studentUid: string) => void;
   onSelectPrintTranscript: (student: Student) => void;
@@ -47,6 +54,8 @@ interface RegistrarPortalProps {
   churchLogo?: string;
   onUpdateStudents?: (updated: Student[]) => void;
   teachers?: string[];
+  userPasswords?: Record<string, string>;
+  onOpenPasswordModal?: (studentUid: string, studentName: string) => void;
 }
 
 export const RegistrarPortal: React.FC<RegistrarPortalProps> = ({
@@ -59,6 +68,9 @@ export const RegistrarPortal: React.FC<RegistrarPortalProps> = ({
   availableYears,
   gradePublished,
   onToggleGradePublication,
+  studentPdfPrintAllowed,
+  onToggleStudentPdfPrint,
+  onOpenReleaseManager,
   onOpenAddStudent,
   onOpenPhotoModal,
   onSelectPrintTranscript,
@@ -68,13 +80,18 @@ export const RegistrarPortal: React.FC<RegistrarPortalProps> = ({
   officialConfig,
   churchLogo,
   onUpdateStudents,
-  teachers
+  teachers,
+  userPasswords = {},
+  onOpenPasswordModal
 }) => {
   const [activeTab, setActiveTab] = useState<'students' | 'teacher_assignments' | 'course_grades' | 'all_grades' | 'graduation'>('students');
   const [searchTerm, setSearchTerm] = useState('');
   const [programFilter, setProgramFilter] = useState<'ALL' | ProgramType>('ALL');
   const [genderFilter, setGenderFilter] = useState<'ALL' | 'ወንድ' | 'ሴት'>('ALL');
   const [yearFilter, setYearFilter] = useState<'ALL' | number>('ALL');
+  const [showStudentCredentialsModal, setShowStudentCredentialsModal] = useState(false);
+  const [showStudentKeys, setShowStudentKeys] = useState<Record<string, boolean>>({});
+  const [copiedPasskeyUid, setCopiedPasskeyUid] = useState<string | null>(null);
 
   // Course Grade Entry & Verification State
   const [selectedCourseId, setSelectedCourseId] = useState<string>(courses[0]?.id || '');
@@ -183,15 +200,19 @@ export const RegistrarPortal: React.FC<RegistrarPortalProps> = ({
     });
   };
 
-  const filteredStudents = students.filter((s) => {
-    const matchesSearch =
-      s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.id.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesProg = programFilter === 'ALL' || s.program === programFilter;
-    const matchesGender = genderFilter === 'ALL' || s.gender === genderFilter;
-    const matchesYear = yearFilter === 'ALL' || (s.currentStudyYear || 1) === yearFilter;
-    return matchesSearch && matchesProg && matchesGender && matchesYear;
-  });
+  const filteredStudents = React.useMemo(() => {
+    const list = students.filter((s) => {
+      const matchesSearch =
+        s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.id.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesProg = programFilter === 'ALL' || s.program === programFilter;
+      const matchesGender = genderFilter === 'ALL' || s.gender === genderFilter;
+      const matchesYear = yearFilter === 'ALL' || (s.currentStudyYear || 1) === yearFilter;
+      return matchesSearch && matchesProg && matchesGender && matchesYear;
+    });
+    return sortStudentsByAmharicName(list);
+  }, [students, searchTerm, programFilter, genderFilter, yearFilter]);
+
 
   const degreeCount = students.filter(s => s.program === 'Degree').length;
   const diplomaCount = students.filter(s => s.program === 'Diploma').length;
@@ -271,28 +292,67 @@ export const RegistrarPortal: React.FC<RegistrarPortalProps> = ({
 
         <div className="flex flex-wrap items-center gap-2.5">
           {onToggleGradePublication && (
-            <button
-              type="button"
-              onClick={onToggleGradePublication}
-              className={`inline-flex items-center gap-1.5 text-xs px-3.5 py-2.5 rounded-xl font-bold shadow-md transition-all cursor-pointer ${
-                gradePublished
-                  ? 'bg-emerald-700 hover:bg-emerald-800 text-white'
-                  : 'bg-amber-500 hover:bg-amber-600 text-slate-950'
-              }`}
-              title="ውጤት ለተማሪዎች ይታይ/ይሰወር የሚለውን የሬጅስተራል ፈቃድ ይቆጣጠሩ"
-            >
-              {gradePublished ? (
-                <>
-                  <CheckCircle2 className="w-4 h-4 text-emerald-200" />
-                  <span>ውጤት ለተማሪዎች ተለቋል (Grade Released)</span>
-                </>
-              ) : (
-                <>
-                  <EyeOff className="w-4 h-4 text-slate-950" />
-                  <span>ውጤት ለተማሪዎች ተቆልፏል (Pending Release)</span>
-                </>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={onToggleGradePublication}
+                className={`inline-flex items-center gap-1.5 text-xs px-3.5 py-2.5 rounded-xl font-bold shadow-md transition-all cursor-pointer ${
+                  gradePublished
+                    ? 'bg-emerald-700 hover:bg-emerald-800 text-white'
+                    : 'bg-amber-500 hover:bg-amber-600 text-slate-950'
+                }`}
+                title="ውጤት ለተማሪዎች ይታይ/ይሰወር የሚለውን የሬጅስተራል ፈቃድ ይቆጣጠሩ"
+              >
+                {gradePublished ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+                    <span>🌐 ለሁሉም አሳይ</span>
+                  </>
+                ) : (
+                  <>
+                    <EyeOff className="w-4 h-4 text-slate-950" />
+                    <span>🔒 ለሁሉም እገድ</span>
+                  </>
+                )}
+              </button>
+
+              {onToggleStudentPdfPrint && (
+                <button
+                  type="button"
+                  onClick={onToggleStudentPdfPrint}
+                  className={`inline-flex items-center gap-1.5 text-xs px-3.5 py-2.5 rounded-xl font-bold shadow-md transition-all cursor-pointer ${
+                    studentPdfPrintAllowed
+                      ? 'bg-indigo-700 hover:bg-indigo-800 text-white'
+                      : 'bg-slate-700 hover:bg-slate-800 text-amber-300'
+                  }`}
+                  title="የተማሪዎችን የፒዲኤፍ ማተም ሁነታ ያብሩ/ያጥፉ"
+                >
+                  {studentPdfPrintAllowed ? (
+                    <>
+                      <Printer className="w-4 h-4 text-amber-300" />
+                      <span>🖨️ ፒዲኤፍ ማተም ተፈቅዷል</span>
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-4 h-4 text-amber-400" />
+                      <span>🚫 ፒዲኤፍ ማተም ታግዷል</span>
+                    </>
+                  )}
+                </button>
               )}
-            </button>
+
+              {onOpenReleaseManager && (
+                <button
+                  type="button"
+                  onClick={onOpenReleaseManager}
+                  className="bg-indigo-700 hover:bg-indigo-800 text-white font-extrabold text-xs px-3.5 py-2.5 rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+                  title="በተማሪዎች መርጦ ውጤትና ትራንስክሪፕት መፍቀጃና ማገጃ"
+                >
+                  <ShieldAlert className="w-4 h-4 text-amber-300" />
+                  <span>🔒 በልዩነት መርጦ መፍቀድ/ማገድ</span>
+                </button>
+              )}
+            </div>
           )}
 
           <button
@@ -304,8 +364,18 @@ export const RegistrarPortal: React.FC<RegistrarPortalProps> = ({
           </button>
 
           <button
+            type="button"
+            onClick={() => setShowStudentCredentialsModal(true)}
+            className="bg-gradient-to-r from-emerald-800 to-emerald-700 hover:from-emerald-900 hover:to-emerald-800 text-white text-xs px-3.5 py-2.5 rounded-xl font-bold shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+            title="የተማሪዎችን ይፋዊ መግቢያ ቁልፎች ሰነድ አትም ወይም በ CSV አውርድ"
+          >
+            <Key className="w-4 h-4 text-amber-300" />
+            <span>የመግቢያ ቁልፍ ሰነድ (Passkeys)</span>
+          </button>
+
+          <button
             onClick={handleExportRosterCSV}
-            className="bg-slate-800 hover:bg-slate-900 text-white text-xs px-3.5 py-2.5 rounded-xl font-bold shadow-sm transition-all flex items-center gap-1.5"
+            className="bg-slate-800 hover:bg-slate-900 text-white text-xs px-3.5 py-2.5 rounded-xl font-bold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
             title="የተማሪዎችን ስም ዝርዝር አውርድ"
           >
             <Download className="w-4 h-4 text-emerald-400" />
@@ -313,6 +383,7 @@ export const RegistrarPortal: React.FC<RegistrarPortalProps> = ({
           </button>
         </div>
       </div>
+
 
       {/* Navigation tabs */}
       <div className="flex border-b border-slate-200 gap-2">
@@ -480,6 +551,7 @@ export const RegistrarPortal: React.FC<RegistrarPortalProps> = ({
                     <th className="p-3">ደረጃ / ዓመት</th>
                     <th className="p-3">የትምህርት መንገድ</th>
                     <th className="p-3">ሁኔታ</th>
+                    <th className="p-3">መግቢያ ቁልፍ (Passkey)</th>
                     <th className="p-3 text-center">ሴሚስተር GPA</th>
                     <th className="p-3 text-right">ተግባር (Actions)</th>
                   </tr>
@@ -487,7 +559,7 @@ export const RegistrarPortal: React.FC<RegistrarPortalProps> = ({
                 <tbody className="divide-y divide-slate-100">
                   {filteredStudents.length === 0 ? (
                     <tr>
-                      <td colSpan={11} className="p-8 text-center text-slate-400 italic">
+                      <td colSpan={12} className="p-8 text-center text-slate-400 italic">
                         ምንም የተገኘ ተማሪ የለም።
                       </td>
                     </tr>
@@ -495,6 +567,9 @@ export const RegistrarPortal: React.FC<RegistrarPortalProps> = ({
                     filteredStudents.map((s, idx) => {
                       const gpa = calculateStudentGPA(s, courses, grades, currentYear, currentSemester);
                       const photoSrc = photos[s.uid];
+                      const passkey = userPasswords[s.uid] || DEFAULT_STUDENT_PASSKEYS[s.uid] || generateStudentPasskey(s);
+                      const isVisible = showStudentKeys[s.uid];
+                      const isCopied = copiedPasskeyUid === s.uid;
 
                       return (
                         <tr key={s.uid} className="hover:bg-slate-50/80 transition-colors">
@@ -565,6 +640,34 @@ export const RegistrarPortal: React.FC<RegistrarPortalProps> = ({
                               {s.graduationStatus === 'GRADUATED' ? 'የተመረቀ' : s.graduationStatus === 'CANDIDATE' ? 'ተማራቂ' : 'በመማር ላይ'}
                             </span>
                           </td>
+                          <td className="p-3">
+                            <div className="flex items-center gap-1 font-mono text-xs">
+                              <span className={`px-2 py-0.5 rounded font-bold ${isVisible ? 'bg-amber-100 text-amber-950 border border-amber-300' : 'text-emerald-800'}`}>
+                                {isVisible ? passkey : `•••••• (${passkey})`}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setShowStudentKeys((prev) => ({ ...prev, [s.uid]: !prev[s.uid] }))}
+                                className="p-1 text-slate-400 hover:text-slate-700 cursor-pointer"
+                                title={isVisible ? 'ደብቅ' : 'አሳይ'}
+                              >
+                                {isVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(passkey);
+                                  setCopiedPasskeyUid(s.uid);
+                                  showNotify(`የ${s.name} መግቢያ ቁልፍ ተቀድቷል!`, 'success');
+                                  setTimeout(() => setCopiedPasskeyUid(null), 2000);
+                                }}
+                                className="p-1 text-slate-400 hover:text-emerald-700 cursor-pointer"
+                                title="ቁልፍ ኮፒ አድርግ"
+                              >
+                                {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                              </button>
+                            </div>
+                          </td>
                           <td className="p-3 text-center font-black text-amber-700 font-mono text-sm">
                             {gpa}
                           </td>
@@ -599,9 +702,24 @@ export const RegistrarPortal: React.FC<RegistrarPortalProps> = ({
                 </tbody>
               </table>
             </div>
+
+            {/* Student Credentials Modal */}
+            {showStudentCredentialsModal && (
+              <StudentCredentialsModal
+                students={students}
+                userPasswords={userPasswords}
+                churchLogo={churchLogo}
+                currentYear={currentYear}
+                currentSemester={currentSemester}
+                onClose={() => setShowStudentCredentialsModal(false)}
+                showNotify={showNotify}
+                onOpenPasswordModal={onOpenPasswordModal}
+              />
+            )}
           </div>
         </div>
       )}
+
 
       {/* TAB 2: Teacher Assignments & Notices */}
       {activeTab === 'teacher_assignments' && (

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Award, Calendar, BookOpen, Clock, Printer, AlertTriangle, CheckCircle2, Bookmark, GraduationCap } from 'lucide-react';
+import { User, Award, Calendar, BookOpen, Clock, Printer, AlertTriangle, CheckCircle2, Bookmark, GraduationCap, Lock } from 'lucide-react';
 import { Course, GradeBreakdown, OfficialSignaturesConfig, Student } from '../types.ts';
 import { calculateGradeDetails, calculateStudentGPA, getCourseAssessmentItems, getEffectiveGradeValues, getGradeKey } from '../utils/gradeCalculations.ts';
 import { GraduationTranscriptModal } from './GraduationTranscriptModal.tsx';
@@ -12,6 +12,11 @@ interface StudentPortalProps {
   currentYear: string;
   currentSemester: string;
   gradePublished: boolean;
+  individualGradeRelease?: Record<string, boolean>;
+  studentPdfPrintAllowed?: boolean;
+  individualPdfPrintAllowed?: Record<string, boolean>;
+  fullTranscriptPublished?: boolean;
+  individualFullTranscriptRelease?: Record<string, boolean>;
   officialConfig?: OfficialSignaturesConfig;
   churchLogo?: string;
   onOpenTranscript: () => void;
@@ -25,6 +30,11 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
   currentYear,
   currentSemester,
   gradePublished,
+  individualGradeRelease,
+  studentPdfPrintAllowed = false,
+  individualPdfPrintAllowed,
+  fullTranscriptPublished = false,
+  individualFullTranscriptRelease,
   officialConfig,
   churchLogo,
   onOpenTranscript
@@ -32,6 +42,31 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
   const [showGraduationTranscript, setShowGraduationTranscript] = useState(false);
   const studentCourses = courses.filter((c) => c.program === student.program);
   const gpa = calculateStudentGPA(student, courses, grades, currentYear, currentSemester);
+
+  // Check if grade/transcript release is authorized for this specific student
+  const isStudentReleased = (
+    individualGradeRelease && individualGradeRelease[student.uid] !== undefined
+      ? individualGradeRelease[student.uid]
+      : gradePublished
+  ) === true;
+
+  // Check if Full Graduation Transcript is explicitly permitted for this student
+  // Unless explicitly authorized, it will NOT appear on the student page!
+  const isFullTranscriptAllowed = (
+    isStudentReleased &&
+    (
+      individualFullTranscriptRelease && individualFullTranscriptRelease[student.uid] !== undefined
+        ? individualFullTranscriptRelease[student.uid]
+        : (fullTranscriptPublished ?? false)
+    )
+  ) === true;
+
+  // Check if PDF print is allowed for this student
+  const isPdfPrintAllowed = (
+    individualPdfPrintAllowed && individualPdfPrintAllowed[student.uid] !== undefined
+      ? individualPdfPrintAllowed[student.uid]
+      : studentPdfPrintAllowed
+  ) === true;
 
   return (
     <div className="space-y-6 no-print">
@@ -84,9 +119,9 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto justify-between md:justify-end">
-          {/* Transcript buttons are COMPLETELY HIDDEN from students unless grade release is officially authorized */}
-          {gradePublished && (
-            <>
+          {/* Transcript buttons are COMPLETELY HIDDEN from students unless grade release is officially authorized for THIS student */}
+          {isStudentReleased && (
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={onOpenTranscript}
                 className="inline-flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs px-3.5 py-2.5 rounded-xl font-bold shadow-sm transition-all cursor-pointer"
@@ -96,15 +131,25 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                 <span>የሴሚስተር ትራንስክሪፕት</span>
               </button>
 
-              <button
-                onClick={() => setShowGraduationTranscript(true)}
-                className="inline-flex items-center gap-1.5 bg-emerald-800 hover:bg-emerald-900 text-white text-xs px-3.5 py-2.5 rounded-xl font-bold shadow-sm transition-all cursor-pointer"
-                title="የተማሩበትን ሙሉ ትምህርት የምረቃ ትራንስክሪፕት በአንድ ላይ ይመልከቱ"
-              >
-                <GraduationCap className="w-4 h-4 text-amber-300" />
-                <span>ሙሉ የምረቃ ትራንስክሪፕት</span>
-              </button>
-            </>
+              {/* ሙሉ የምረቃ ትራንስክሪፕት button is STRICTLY HIDDEN from students unless explicitly permitted */}
+              {isFullTranscriptAllowed && (
+                <button
+                  onClick={() => setShowGraduationTranscript(true)}
+                  className="inline-flex items-center gap-1.5 bg-emerald-800 hover:bg-emerald-900 text-white text-xs px-3.5 py-2.5 rounded-xl font-bold shadow-sm transition-all cursor-pointer"
+                  title="የተማሩበትን ሙሉ ትምህርት የምረቃ ትራንስክሪፕት በአንድ ላይ ይመልከቱ"
+                >
+                  <GraduationCap className="w-4 h-4 text-amber-300" />
+                  <span>ሙሉ የምረቃ ትራንስክሪፕት</span>
+                </button>
+              )}
+
+              {!isPdfPrintAllowed && (
+                <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-900 border border-amber-300 text-[10px] font-bold px-2.5 py-1 rounded-xl shadow-2xs">
+                  <Lock className="w-3.5 h-3.5 text-amber-700" />
+                  <span>የፒዲኤፍ ማተም ታግዷል (ማየት ብቻ)</span>
+                </span>
+              )}
+            </div>
           )}
 
           <div className="bg-gradient-to-br from-amber-50 to-amber-100/70 border border-amber-300 rounded-2xl p-3 text-center min-w-[120px] shadow-xs">
@@ -112,23 +157,23 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
               የሴሚስተሩ GPA
             </span>
             <span className="text-2xl sm:text-3xl font-black text-amber-950 font-mono">
-              {gradePublished ? gpa : '🔒 ***'}
+              {isStudentReleased ? gpa : '🔒 ***'}
             </span>
           </div>
         </div>
       </div>
 
       {/* Grade status alert when pending official authorization */}
-      {!gradePublished && (
+      {!isStudentReleased && (
         <div className="bg-rose-50 border-2 border-rose-300 text-rose-950 p-4 rounded-2xl text-xs flex items-start gap-3 shadow-xs">
           <AlertTriangle className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />
           <div className="space-y-1">
             <p className="font-extrabold text-sm text-rose-900 flex items-center gap-1.5">
-              <span>🔒 የዚህ ሴሚስተር ውጤትና ትራንስክሪፕት ለተማሪዎች አልተለቀቀም</span>
-              <span className="bg-rose-200 text-rose-950 px-2 py-0.5 rounded text-[10px] font-mono">PENDING RELEASE</span>
+              <span>🔒 የእርሶ ውጤትና ትራንስክሪፕት ለጊዜው አልተለቀቀም / ታግዷል</span>
+              <span className="bg-rose-200 text-rose-950 px-2 py-0.5 rounded text-[10px] font-mono">RELEASE HELD</span>
             </p>
             <p className="text-rose-800 font-medium">
-              የዚህ ሴሚስተር ውጤትና የትራንስክሪፕት ሰነዶች በኃላፊነት ባላቸው አካላት (በዋና አድሚን፣ በዋና ዲን እና በሪጅስተራል) ተረጋግጠው በይፋ እስኪፈቀዱ ድረስ ለተማሪዎች ተሰውረው ይቆያሉ። እባክዎን ይፋ እስኪደረግ ይታገሱ።
+              የዚህ ሴሚስተር ውጤትና የትራንስክሪፕት ሰነዶች በኃላፊነት ባላቸው አካላት (በዋና አድሚን፣ በዋና ዲን እና በሪጅስተራል) ተረጋግጠው በይፋ እስኪፈቀዱ ድረስ ተሰውረዋል። እባክዎን በጽሕፈት ቤት በኩል ይፋ እስኪደረግ ይታገሱ።
             </p>
           </div>
         </div>
@@ -172,13 +217,13 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                       <td className="p-3 text-amber-900 font-medium bg-amber-50/50 rounded">{c.schedule}</td>
                       <td className="p-3 text-slate-600 font-semibold">{c.teacher}</td>
                       <td className="p-3 text-center font-black font-mono">
-                        {!gradePublished ? '***' : eff.hasAny ? eff.total : '—'}
+                        {!isStudentReleased ? '***' : eff.hasAny ? eff.total : '—'}
                       </td>
                       <td className="p-3 text-center font-black text-emerald-800 text-sm">
-                        {!gradePublished ? '***' : eff.letter}
+                        {!isStudentReleased ? '***' : eff.letter}
                       </td>
                       <td className="p-3 text-center text-[10px] text-slate-500 font-medium">
-                        {!gradePublished ? '***' : eff.desc}
+                        {!isStudentReleased ? '***' : eff.desc}
                       </td>
                     </tr>
                   );
@@ -239,6 +284,8 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
           currentSemester={currentSemester}
           officialConfig={officialConfig}
           churchLogo={churchLogo}
+          allowPdfPrint={isPdfPrintAllowed}
+          isStudentViewer={true}
           onClose={() => setShowGraduationTranscript(false)}
         />
       )}

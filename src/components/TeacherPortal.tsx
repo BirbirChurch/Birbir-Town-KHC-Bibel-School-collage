@@ -39,6 +39,8 @@ import {
   Student,
   UserRole
 } from '../types.ts';
+import { sortStudentsByAmharicName } from '../utils/amharicSort.ts';
+
 import {
   calculateGradeDetails,
   DEFAULT_ASSESSMENT_CONFIG,
@@ -169,7 +171,10 @@ export const TeacherPortal: React.FC<TeacherPortalProps> = ({
     setLocalGrades(initial);
   }, [selectedCourseId, courses, students, grades, currentYear, selectedSemesterFilter]);
 
-  const enrolledStudents = activeCourse ? students.filter((s) => s.program === activeCourse.program) : [];
+  const enrolledStudents = activeCourse
+    ? sortStudentsByAmharicName(students.filter((s) => s.program === activeCourse.program))
+    : [];
+
 
   // Excel-like Keyboard Navigation (Arrow Keys / Enter / Tab) for score input grid
   const handleCellKeyDown = (

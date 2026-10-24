@@ -3,7 +3,7 @@ import { LogIn, Shield, Award, User, GraduationCap, Lock, Cloud, Key, Eye, EyeOf
 import { CurrentUser, ProgramType, Student, UserRole } from '../types.ts';
 import { FirebaseConnectionReport } from '../services/firebaseSync.ts';
 import { CHURCH_LOGO } from '../assets/logo.ts';
-import { DEFAULT_TEACHER_KEYS, generateTeacherKey } from '../data/initialData.ts';
+import { DEFAULT_TEACHER_KEYS, generateTeacherKey, DEFAULT_STUDENT_PASSKEYS, generateStudentPasskey } from '../data/initialData.ts';
 
 interface LoginViewProps {
   students: Student[];
@@ -60,10 +60,17 @@ export const LoginView: React.FC<LoginViewProps> = ({
         return;
       }
 
-      // Check student's individual password (stored by found.uid)
-      const expectedPassword = userPasswords[found.uid] || found.id;
-      if (password !== expectedPassword) {
-        showNotify('የተሳሳተ የተማሪ የይለፍ ቃል!', 'error');
+      // Check if student mistakenly typed their Student ID instead of their distinct Passkey
+      if (password.trim() === found.id) {
+        showNotify('የተማሪ መግቢያ ቁልፍ ከመለያ ኮድ የተለየ ነው። እባክዎ የተሰጦትን የተማሪ የግል መግቢያ ቁልፍ (Passkey) ያስገቡ!', 'warning');
+        return;
+      }
+
+      // Check student's individual passkey (stored by found.uid)
+      const expectedPassword =
+        userPasswords[found.uid] || DEFAULT_STUDENT_PASSKEYS[found.uid] || generateStudentPasskey(found);
+      if (password.trim() !== expectedPassword.trim()) {
+        showNotify('የተሳሳተ የተማሪ መግቢያ ቁልፍ! እባክዎ በትክክል ያስገቡ።', 'error');
         return;
       }
 
@@ -313,15 +320,25 @@ export const LoginView: React.FC<LoginViewProps> = ({
           {/* Passkey / Password Input for all roles */}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1">
-              {role === 'TEACHER' ? 'የመምህር የመግቢያ ቁልፍ (Passkey)' : 'የይለፍ ቃል (Password)'}
+              {role === 'TEACHER'
+                ? 'የመምህር የመግቢያ ቁልፍ (Teacher Passkey)'
+                : role === 'STUDENT'
+                ? 'የተማሪ የግል መግቢያ ቁልፍ (Student Passkey)'
+                : 'የይለፍ ቃል (Password)'}
             </label>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder={role === 'TEACHER' ? 'የመምህር ቁልፍዎን ያስገቡ...' : '••••••••'}
-                className="w-full px-3.5 py-2.5 pr-10 text-sm rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-700 focus:border-emerald-700 bg-slate-50 font-mono tracking-wider"
+                placeholder={
+                  role === 'TEACHER'
+                    ? 'የመምህር ቁልፍዎን ያስገቡ...'
+                    : role === 'STUDENT'
+                    ? 'የተማሪ የግል መግቢያ ቁልፍ (ምሳሌ፡ ST-7182)'
+                    : '••••••••'
+                }
+                className="w-full px-3.5 py-2.5 pr-10 text-sm rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-700 focus:border-emerald-700 bg-slate-50 font-mono tracking-wider font-semibold"
                 required
               />
               <button
@@ -334,6 +351,9 @@ export const LoginView: React.FC<LoginViewProps> = ({
               </button>
             </div>
           </div>
+
+
+
 
           {/* Submit Button */}
           <button

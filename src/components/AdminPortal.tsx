@@ -33,12 +33,16 @@ import {
   X,
   Sparkles,
   Save,
+  ShieldAlert,
+  History,
   Calendar,
   Plus,
   BarChart3
 } from 'lucide-react';
 import { GradingScaleItem, Student, Course, GradeBreakdown, OfficialSignaturesConfig, ProgramType } from '../types.ts';
-import { OFFICIAL_GRADING_SCALE, generateTeacherKey } from '../data/initialData.ts';
+import { OFFICIAL_GRADING_SCALE, generateTeacherKey, DEFAULT_STUDENT_PASSKEYS, generateStudentPasskey } from '../data/initialData.ts';
+import { sortStudentsByAmharicName } from '../utils/amharicSort.ts';
+import { StudentCredentialsModal } from './StudentCredentialsModal.tsx';
 import { FirebaseConnectionReport } from '../services/firebaseSync.ts';
 import { DEFAULT_CHURCH_LOGO } from '../assets/logo.ts';
 import { OfficialSignaturesManager } from './OfficialSignaturesManager.tsx';
@@ -65,6 +69,8 @@ interface AdminPortalProps {
   currentSemester: string;
   gradePublished: boolean;
   onToggleGradePublication: () => void;
+  onOpenReleaseManager?: () => void;
+  onOpenArchiveModal?: () => void;
   onExportData: () => void;
   onImportData: (jsonData: string) => void;
   onResetDefaults: () => void;
@@ -92,6 +98,8 @@ interface AdminPortalProps {
   onAddAcademicYear?: (year: string) => void;
   availableYears?: string[];
   onUpdateStudents?: (updatedStudents: Student[]) => void;
+  studentPdfPrintAllowed?: boolean;
+  onToggleStudentPdfPrint?: () => void;
 }
 
 export const AdminPortal: React.FC<AdminPortalProps> = ({
@@ -107,6 +115,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   currentSemester,
   gradePublished,
   onToggleGradePublication,
+  studentPdfPrintAllowed,
+  onToggleStudentPdfPrint,
+  onOpenReleaseManager,
+  onOpenArchiveModal,
   onExportData,
   onImportData,
   onResetDefaults,
@@ -142,6 +154,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const [showAllKeys, setShowAllKeys] = useState(false);
   const [copiedTeacher, setCopiedTeacher] = useState<string | null>(null);
   const [copiedAll, setCopiedAll] = useState(false);
+
+  // Student Passkeys & Credentials State
+  const [showStudentCredentialsModal, setShowStudentCredentialsModal] = useState(false);
+  const [showStudentKeys, setShowStudentKeys] = useState<Record<string, boolean>>({});
+  const [copiedStudentUid, setCopiedStudentUid] = useState<string | null>(null);
 
   // Academic Year Creation State
   const [newYearInput, setNewYearInput] = useState('');
@@ -334,21 +351,96 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         </div>
 
         {/* Lock Switch */}
-        <div className="flex items-center gap-3 bg-slate-50 p-2.5 rounded-2xl border border-slate-200">
-          <div className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-            {systemLocked ? <Lock className="w-4 h-4 text-rose-600" /> : <Unlock className="w-4 h-4 text-emerald-600" />}
-            <span>የጥገና ሁነታ (Maintenance Lock):</span>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-2xl border border-slate-200">
+            <div className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+              {systemLocked ? <Lock className="w-4 h-4 text-rose-600" /> : <Unlock className="w-4 h-4 text-emerald-600" />}
+              <span>የጥገና ሁነታ:</span>
+            </div>
+            <button
+              onClick={onToggleLock}
+              className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all shadow-sm cursor-pointer ${
+                systemLocked
+                  ? 'bg-rose-600 hover:bg-rose-700 text-white'
+                  : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+              }`}
+            >
+              {systemLocked ? 'ተቆልፏል' : 'ክፍት ነው'}
+            </button>
           </div>
-          <button
-            onClick={onToggleLock}
-            className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer ${
-              systemLocked
-                ? 'bg-rose-600 hover:bg-rose-700 text-white'
-                : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-            }`}
-          >
-            {systemLocked ? 'ተቆልፏል (LOCKED)' : 'ክፍት ነው (ACTIVE)'}
-          </button>
+
+          <div className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-2xl border border-slate-200">
+            <button
+              type="button"
+              onClick={onToggleGradePublication}
+              className={`px-3.5 py-1.5 text-xs font-extrabold rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer ${
+                gradePublished
+                  ? 'bg-emerald-700 hover:bg-emerald-800 text-white'
+                  : 'bg-amber-500 hover:bg-amber-600 text-slate-950'
+              }`}
+            >
+              {gradePublished ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+                  <span>🌐 ለሁሉም አሳይ (Release All)</span>
+                </>
+              ) : (
+                <>
+                  <EyeOff className="w-4 h-4 text-slate-950" />
+                  <span>🔒 ለሁሉም እገድ (Hold All)</span>
+                </>
+              )}
+            </button>
+
+            {onToggleStudentPdfPrint && (
+              <button
+                type="button"
+                onClick={onToggleStudentPdfPrint}
+                className={`px-3.5 py-1.5 text-xs font-extrabold rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer ${
+                  studentPdfPrintAllowed
+                    ? 'bg-indigo-700 hover:bg-indigo-800 text-white'
+                    : 'bg-slate-700 hover:bg-slate-800 text-amber-300'
+                }`}
+                title="የተማሪዎችን የፒዲኤፍ ማተም ሁነታ ያብሩ/ያጥፉ"
+              >
+                {studentPdfPrintAllowed ? (
+                  <>
+                    <Printer className="w-4 h-4 text-amber-300" />
+                    <span>🖨️ ፒዲኤፍ ማተም ተፈቅዷል</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-4 h-4 text-amber-400" />
+                    <span>🚫 ፒዲኤፍ ማተም ታግዷል</span>
+                  </>
+                )}
+              </button>
+            )}
+
+            {onOpenReleaseManager && (
+              <button
+                type="button"
+                onClick={onOpenReleaseManager}
+                className="bg-indigo-700 hover:bg-indigo-800 text-white font-extrabold text-xs px-3.5 py-1.5 rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+                title="በተማሪዎች መርጦ ውጤትና ትራንስክሪፕት መፍቀጃና ማገጃ"
+              >
+                <ShieldAlert className="w-4 h-4 text-amber-300" />
+                <span>🔒 በልዩነት መርጦ መፍቀድ/ማገድ</span>
+              </button>
+            )}
+
+            {onOpenArchiveModal && (
+              <button
+                type="button"
+                onClick={onOpenArchiveModal}
+                className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs px-3.5 py-1.5 rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+                title="የቀደሙ ሥራዎችና ማህደር መፈለጊያ ማዕከል"
+              >
+                <History className="w-4 h-4 text-slate-950" />
+                <span>🔍 የቀደሙ ሥራዎችና ማህደር</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -1585,22 +1677,36 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           return matchesSearch && matchesProg && matchesYear && matchesStatus;
         });
 
+        // Sorted according to official Amharic Fidel alphabetical order (ሀ እስከ ፐ)
+        const sortedFilteredStudents = sortStudentsByAmharicName(filteredStudents);
+
         return (
           <div className="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6 space-y-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b pb-3">
               <div>
                 <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
                   <Users className="w-5 h-5 text-emerald-700" />
-                  <span>የተማሪዎች ማህደር፣ ደረጃ፣ ውጤት እና የግል የይለፍ ቃሎች ({students.length})</span>
+                  <span>የተማሪዎች ማህደር፣ ደረጃ፣ ውጤት እና የግል መግቢያ ቁልፎች ({students.length})</span>
                 </h3>
                 <p className="text-xs text-slate-500">
-                  አድሚን የተማሪዎችን ዓመት/ደረጃ መቆጣጠር፣ የግል መግቢያ ቁልፍ መቀየርና ትራንስክሪፕት ማዘጋጀት ይችላል
+                  ሁሉም ተማሪዎች ከመለያ ኮድ ውጪ የሆነ የግል መግቢያ ቁልፍ (ST-XXXX) አላቸው። ስሞች በአማርኛ ፊደል ተራ ተደርድረዋል።
                 </p>
               </div>
 
-              <span className="text-xs bg-slate-100 text-slate-700 px-3 py-1 rounded-xl font-bold">
-                የተጣሩ: {filteredStudents.length} / {students.length}
-              </span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setShowStudentCredentialsModal(true)}
+                  className="inline-flex items-center gap-1.5 bg-gradient-to-r from-emerald-800 to-emerald-700 hover:from-emerald-900 hover:to-emerald-800 text-white text-xs px-3.5 py-2 rounded-xl font-bold shadow-sm transition-all cursor-pointer"
+                >
+                  <Printer className="w-3.5 h-3.5 text-amber-300" />
+                  <span>የተማሪዎች መግቢያ ቁልፍ ሰነድ (Print/Export)</span>
+                </button>
+
+                <span className="text-xs bg-slate-100 text-slate-700 px-3 py-1.5 rounded-xl font-bold">
+                  የተጣሩ: {sortedFilteredStudents.length} / {students.length}
+                </span>
+              </div>
             </div>
 
             {/* Filters Toolbar */}
@@ -1655,87 +1761,133 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   <tr>
                     <th className="p-2.5">ተ.ቁ</th>
                     <th className="p-2.5">ID</th>
-                    <th className="p-2.5">የተማሪ ስም</th>
+                    <th className="p-2.5">የተማሪ ስም (በፊደል ተራ)</th>
                     <th className="p-2.5">ጾታ</th>
                     <th className="p-2.5">ፕሮግራም</th>
                     <th className="p-2.5">ደረጃ / ዓመት</th>
                     <th className="p-2.5">የትምህርት መንገድ</th>
                     <th className="p-2.5">ሁኔታ</th>
-                    <th className="p-2.5">የግል ቁልፍ</th>
+                    <th className="p-2.5">የግል መግቢያ ቁልፍ (Passkey)</th>
                     <th className="p-2.5 text-right">ተግባር</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filteredStudents.map((s, idx) => (
-                    <tr key={s.uid} className="hover:bg-slate-50 transition-colors">
-                      <td className="p-2.5 font-mono text-slate-400">{idx + 1}</td>
-                      <td className="p-2.5 font-mono font-bold text-slate-800">{s.id}</td>
-                      <td className="p-2.5">
-                        <span className="font-bold text-slate-900 block">{s.name}</span>
-                        <span className="text-[10px] text-slate-400">የገቡበት: {s.admissionYear || '2019'} ዓ.ም</span>
-                      </td>
-                      <td className="p-2.5 text-slate-600">{s.gender}</td>
-                      <td className="p-2.5">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          s.program === 'Degree' ? 'bg-indigo-100 text-indigo-800' : 'bg-emerald-100 text-emerald-800'
-                        }`}>
-                          {s.program}
-                        </span>
-                      </td>
-                      <td className="p-2.5">
-                        <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold ${
-                          s.currentStudyYear === 2 ? 'bg-amber-100 text-amber-950 border border-amber-300' : s.currentStudyYear === 3 ? 'bg-purple-100 text-purple-900' : 'bg-slate-100 text-slate-700'
-                        }`}>
-                          {s.currentStudyYear ? `${s.currentStudyYear}ኛ ዓመት` : '1ኛ ዓመት'}
-                        </span>
-                      </td>
-                      <td className="p-2.5 text-[11px] text-slate-600">
-                        {s.program === 'Diploma' ? (
-                          <span>2 ዓመት (4 ሴሚስተር)</span>
-                        ) : s.degreeTrack === '2_YEAR' || s.priorDiploma ? (
-                          <span className="font-bold text-indigo-700">2 ዓመት (ቅድመ ዲፕሎማ)</span>
-                        ) : (
-                          <span>3 ዓመት መደበኛ (5-6 ሴሚስተር)</span>
-                        )}
-                      </td>
-                      <td className="p-2.5">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          s.graduationStatus === 'GRADUATED'
-                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                            : s.graduationStatus === 'CANDIDATE'
-                            ? 'bg-amber-100 text-amber-800 border border-amber-300'
-                            : 'bg-slate-100 text-slate-600'
-                        }`}>
-                          {s.graduationStatus === 'GRADUATED' ? 'የተመረቀ' : s.graduationStatus === 'CANDIDATE' ? 'ተማራቂ' : 'በመማር ላይ'}
-                        </span>
-                      </td>
-                      <td className="p-2.5 font-mono text-xs text-emerald-800 font-bold">
-                        •••••• ({userPasswords[s.uid] || s.id})
-                      </td>
-                      <td className="p-2.5 text-right space-x-1 space-x-reverse whitespace-nowrap">
-                        <button
-                          onClick={() => onOpenPasswordModal(s.uid, s.name)}
-                          className="bg-amber-500 hover:bg-amber-600 text-white text-[10px] px-2.5 py-1 rounded-lg font-bold cursor-pointer"
-                          title="ቁልፍ ቀይር"
-                        >
-                          ቁልፍ ቀይር
-                        </button>
-                        <button
-                          onClick={() => onSelectPrintTranscript(s)}
-                          className="bg-emerald-700 hover:bg-emerald-800 text-white text-[10px] px-2.5 py-1 rounded-lg font-bold cursor-pointer"
-                          title="ትራንስክሪፕት"
-                        >
-                          ትራንስክሪፕት
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {sortedFilteredStudents.map((s, idx) => {
+                    const passkey = userPasswords[s.uid] || DEFAULT_STUDENT_PASSKEYS[s.uid] || generateStudentPasskey(s);
+                    const isVisible = showStudentKeys[s.uid];
+                    const isCopied = copiedStudentUid === s.uid;
+
+                    return (
+                      <tr key={s.uid} className="hover:bg-slate-50 transition-colors">
+                        <td className="p-2.5 font-mono text-slate-400">{idx + 1}</td>
+                        <td className="p-2.5 font-mono font-bold text-slate-800">{s.id}</td>
+                        <td className="p-2.5">
+                          <span className="font-bold text-slate-900 block">{s.name}</span>
+                          <span className="text-[10px] text-slate-400">የገቡበት: {s.admissionYear || '2019'} ዓ.ም</span>
+                        </td>
+                        <td className="p-2.5 text-slate-600">{s.gender}</td>
+                        <td className="p-2.5">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            s.program === 'Degree' ? 'bg-indigo-100 text-indigo-800' : 'bg-emerald-100 text-emerald-800'
+                          }`}>
+                            {s.program}
+                          </span>
+                        </td>
+                        <td className="p-2.5">
+                          <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold ${
+                            s.currentStudyYear === 2 ? 'bg-amber-100 text-amber-950 border border-amber-300' : s.currentStudyYear === 3 ? 'bg-purple-100 text-purple-900' : 'bg-slate-100 text-slate-700'
+                          }`}>
+                            {s.currentStudyYear ? `${s.currentStudyYear}ኛ ዓመት` : '1ኛ ዓመት'}
+                          </span>
+                        </td>
+                        <td className="p-2.5 text-[11px] text-slate-600">
+                          {s.program === 'Diploma' ? (
+                            <span>2 ዓመት (4 ሴሚስተር)</span>
+                          ) : s.degreeTrack === '2_YEAR' || s.priorDiploma ? (
+                            <span className="font-bold text-indigo-700">2 ዓመት (ቅድመ ዲፕሎማ)</span>
+                          ) : (
+                            <span>3 ዓመት መደበኛ (5-6 ሴሚስተር)</span>
+                          )}
+                        </td>
+                        <td className="p-2.5">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            s.graduationStatus === 'GRADUATED'
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                              : s.graduationStatus === 'CANDIDATE'
+                              ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                              : 'bg-slate-100 text-slate-600'
+                          }`}>
+                            {s.graduationStatus === 'GRADUATED' ? 'የተመረቀ' : s.graduationStatus === 'CANDIDATE' ? 'ተማራቂ' : 'በመማር ላይ'}
+                          </span>
+                        </td>
+                        <td className="p-2.5">
+                          <div className="flex items-center gap-1 font-mono text-xs">
+                            <span className={`px-2 py-0.5 rounded font-bold ${isVisible ? 'bg-amber-100 text-amber-950 border border-amber-300' : 'text-emerald-800'}`}>
+                              {isVisible ? passkey : `•••••• (${passkey})`}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setShowStudentKeys((prev) => ({ ...prev, [s.uid]: !prev[s.uid] }))}
+                              className="p-1 text-slate-400 hover:text-slate-700 cursor-pointer"
+                              title={isVisible ? 'ደብቅ' : 'አሳይ'}
+                            >
+                              {isVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(passkey);
+                                setCopiedStudentUid(s.uid);
+                                showNotify?.(`የ${s.name} መግቢያ ቁልፍ ተቀድቷል!`, 'success');
+                                setTimeout(() => setCopiedStudentUid(null), 2000);
+                              }}
+                              className="p-1 text-slate-400 hover:text-emerald-700 cursor-pointer"
+                              title="ቁልፍ ኮፒ አድርግ"
+                            >
+                              {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
+                        </td>
+                        <td className="p-2.5 text-right space-x-1 space-x-reverse whitespace-nowrap">
+                          <button
+                            onClick={() => onOpenPasswordModal(s.uid, s.name)}
+                            className="bg-amber-500 hover:bg-amber-600 text-white text-[10px] px-2.5 py-1 rounded-lg font-bold cursor-pointer"
+                            title="ቁልፍ ቀይር"
+                          >
+                            ቁልፍ ቀይር
+                          </button>
+                          <button
+                            onClick={() => onSelectPrintTranscript(s)}
+                            className="bg-emerald-700 hover:bg-emerald-800 text-white text-[10px] px-2.5 py-1 rounded-lg font-bold cursor-pointer"
+                            title="ትራንስክሪፕት"
+                          >
+                            ትራንስክሪፕት
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
+
+            {/* Student Credentials Modal */}
+            {showStudentCredentialsModal && (
+              <StudentCredentialsModal
+                students={students}
+                userPasswords={userPasswords}
+                churchLogo={churchLogo}
+                currentYear={currentYear}
+                currentSemester={currentSemester}
+                onClose={() => setShowStudentCredentialsModal(false)}
+                showNotify={showNotify || (() => {})}
+                onOpenPasswordModal={onOpenPasswordModal}
+              />
+            )}
           </div>
         );
       })()}
+
 
       {/* Modal: Add New Teacher with Custom or Auto-generated Key */}
       {showAddTeacherModal && (

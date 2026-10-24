@@ -15,6 +15,7 @@ import { PhotoModal } from './components/PhotoModal.tsx';
 import { FirebaseStatusModal } from './components/FirebaseStatusModal.tsx';
 import { DailyVerseBanner } from './components/DailyVerseBanner.tsx';
 import { HistoricalArchiveModal } from './components/HistoricalArchiveModal.tsx';
+import { GradeReleaseManagerModal } from './components/GradeReleaseManagerModal.tsx';
 import { firebaseConfig } from './firebase.ts';
 import { getStoredChurchLogo, saveChurchLogo, DEFAULT_CHURCH_LOGO, loadPersistentChurchLogo } from './assets/logo.ts';
 import { loadPersistentOfficialConfig } from './components/OfficialSignaturesManager.tsx';
@@ -25,9 +26,13 @@ import {
   PRELOADED_TEACHERS,
   DEFAULT_TEACHER_KEYS,
   generateTeacherKey,
-  generateInitialUserPasswords
+  generateInitialUserPasswords,
+  DEFAULT_STUDENT_PASSKEYS,
+  generateStudentPasskey
 } from './data/initialData.ts';
+import { sortStudentsByAmharicName } from './utils/amharicSort.ts';
 import { Course, CurrentUser, GradeBreakdown, OfficialSignaturesConfig, Student, SystemNotification } from './types.ts';
+
 import { generateInitialSampleGrades } from './utils/gradeCalculations.ts';
 import {
   checkFirebaseConnection,
@@ -89,15 +94,17 @@ export default function App() {
     }
   });
 
-  // Students roster state
+  // Students roster state - ordered in traditional Amharic Fidel sequence (ሀ እስከ ፐ)
   const [students, setStudents] = useState<Student[]>(() => {
     try {
       const stored = localStorage.getItem('bk_students');
-      return stored ? JSON.parse(stored) : PRELOADED_STUDENTS;
+      const list = stored ? JSON.parse(stored) : PRELOADED_STUDENTS;
+      return sortStudentsByAmharicName(list);
     } catch {
-      return PRELOADED_STUDENTS;
+      return sortStudentsByAmharicName(PRELOADED_STUDENTS);
     }
   });
+
 
   // Courses state
   const [courses, setCourses] = useState<Course[]>(() => {
@@ -173,11 +180,18 @@ export default function App() {
           base[t] = DEFAULT_TEACHER_KEYS[t] || generateTeacherKey(t, idx + 1);
         }
       });
+      // Ensure all students have their dedicated passkey that is NEVER their Student ID code!
+      PRELOADED_STUDENTS.forEach((s, idx) => {
+        if (!base[s.uid] || base[s.uid] === s.id) {
+          base[s.uid] = DEFAULT_STUDENT_PASSKEYS[s.uid] || generateStudentPasskey(s, idx + 1);
+        }
+      });
       return base;
     } catch {
       return generateInitialUserPasswords();
     }
   });
+
 
   // Toast notifications
   const [notifications, setNotifications] = useState<SystemNotification[]>([]);
@@ -201,6 +215,146 @@ export default function App() {
   const [photoModalStudentUid, setPhotoModalStudentUid] = useState<string | null>(null);
   const [transcriptStudent, setTranscriptStudent] = useState<Student | null>(null);
   const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false);
+  const [isReleaseManagerOpen, setIsReleaseManagerOpen] = useState(false);
+
+  // Individual student grade & transcript release permissions state
+  const [individualGradeRelease, setIndividualGradeRelease] = useState<Record<string, boolean>>(() => {
+    try {
+      const stored = localStorage.getItem('bk_individual_grade_release');
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('bk_individual_grade_release', JSON.stringify(individualGradeRelease));
+    } catch (_) {}
+  }, [individualGradeRelease]);
+
+  const handleSetIndividualRelease = (studentUid: string, released: boolean) => {
+    setIndividualGradeRelease((prev) => ({
+      ...prev,
+      [studentUid]: released
+    }));
+  };
+
+  const handleBatchSetRelease = (uids: string[], released: boolean) => {
+    setIndividualGradeRelease((prev) => {
+      const updated = { ...prev };
+      uids.forEach((uid) => {
+        updated[uid] = released;
+      });
+      return updated;
+    });
+  };
+
+  // Student PDF printing & export permission state
+  // Default is false: unless authorized, students cannot print or download PDF!
+  const [studentPdfPrintAllowed, setStudentPdfPrintAllowed] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem('bk_student_pdf_print_allowed');
+      return stored ? JSON.parse(stored) : false;
+    } catch {
+      return false;
+    }
+  });
+
+  const [individualPdfPrintAllowed, setIndividualPdfPrintAllowed] = useState<Record<string, boolean>>(() => {
+    try {
+      const stored = localStorage.getItem('bk_individual_pdf_print_allowed');
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('bk_student_pdf_print_allowed', JSON.stringify(studentPdfPrintAllowed));
+    } catch (_) {}
+  }, [studentPdfPrintAllowed]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('bk_individual_pdf_print_allowed', JSON.stringify(individualPdfPrintAllowed));
+    } catch (_) {}
+  }, [individualPdfPrintAllowed]);
+
+  const handleToggleGlobalPdfPrint = (value: boolean) => {
+    setStudentPdfPrintAllowed(value);
+  };
+
+  const handleSetIndividualPdfPrint = (studentUid: string, allowed: boolean) => {
+    setIndividualPdfPrintAllowed((prev) => ({
+      ...prev,
+      [studentUid]: allowed
+    }));
+  };
+
+  const handleBatchSetPdfPrint = (uids: string[], allowed: boolean) => {
+    setIndividualPdfPrintAllowed((prev) => {
+      const updated = { ...prev };
+      uids.forEach((uid) => {
+        updated[uid] = allowed;
+      });
+      return updated;
+    });
+  };
+
+  // Full Graduation Transcript permission state
+  // Default is false: unless explicitly authorized for a student or globally, "ሙሉ የምረቃ ትራንስክሪፕት" will NOT appear on the student page!
+  const [fullTranscriptPublished, setFullTranscriptPublished] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem('bk_full_transcript_published');
+      return stored ? JSON.parse(stored) : false;
+    } catch {
+      return false;
+    }
+  });
+
+  const [individualFullTranscriptRelease, setIndividualFullTranscriptRelease] = useState<Record<string, boolean>>(() => {
+    try {
+      const stored = localStorage.getItem('bk_individual_full_transcript_release');
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('bk_full_transcript_published', JSON.stringify(fullTranscriptPublished));
+    } catch (_) {}
+  }, [fullTranscriptPublished]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('bk_individual_full_transcript_release', JSON.stringify(individualFullTranscriptRelease));
+    } catch (_) {}
+  }, [individualFullTranscriptRelease]);
+
+  const handleToggleGlobalFullTranscript = (value: boolean) => {
+    setFullTranscriptPublished(value);
+  };
+
+  const handleSetIndividualFullTranscript = (studentUid: string, allowed: boolean) => {
+    setIndividualFullTranscriptRelease((prev) => ({
+      ...prev,
+      [studentUid]: allowed
+    }));
+  };
+
+  const handleBatchSetFullTranscript = (uids: string[], allowed: boolean) => {
+    setIndividualFullTranscriptRelease((prev) => {
+      const updated = { ...prev };
+      uids.forEach((uid) => {
+        updated[uid] = allowed;
+      });
+      return updated;
+    });
+  };
 
   // Church official emblem / logo state (supports default and custom uploaded logo)
   const [churchLogo, setChurchLogo] = useState<string>(getStoredChurchLogo);
@@ -799,14 +953,16 @@ export default function App() {
 
   // Student save
   const handleSaveStudent = (newStudent: Student) => {
-    setStudents((prev) => [...prev, newStudent]);
+    setStudents((prev) => sortStudentsByAmharicName([...prev, newStudent]));
+    const passkey = generateStudentPasskey(newStudent, students.length + 1);
     setUserPasswords((prev) => ({
       ...prev,
-      [newStudent.uid]: newStudent.id
+      [newStudent.uid]: passkey
     }));
     setIsStudentModalOpen(false);
-    showNotifyUser(`ተማሪ "${newStudent.name}" (${newStudent.program}) በስኬት ተመዝግቧል!`);
+    showNotifyUser(`ተማሪ "${newStudent.name}" (${newStudent.program}) ከመግቢያ ቁልፍ (${passkey}) ጋር በስኬት ተመዝግቧል!`);
   };
+
 
   const showNotifyUser = (msg: string) => {
     showNotification(msg, 'success');
@@ -1021,6 +1177,14 @@ export default function App() {
                 onAddAcademicYear={handleAddAcademicYear}
                 availableYears={availableYears}
                 onUpdateStudents={(updated) => setStudents(updated)}
+                studentPdfPrintAllowed={studentPdfPrintAllowed}
+                onToggleStudentPdfPrint={() => {
+                  const newVal = !studentPdfPrintAllowed;
+                  handleToggleGlobalPdfPrint(newVal);
+                  showNotification(newVal ? 'የተማሪዎች ፒዲኤፍ ማተም ሁነታ ተፈቅዷል!' : 'የተማሪዎች ፒዲኤፍ ማተም ሁነታ ታግዷል!', newVal ? 'success' : 'warning');
+                }}
+                onOpenReleaseManager={() => setIsReleaseManagerOpen(true)}
+                onOpenArchiveModal={() => setIsArchiveModalOpen(true)}
               />
             )}
 
@@ -1034,6 +1198,14 @@ export default function App() {
                 onAddAcademicYear={handleAddAcademicYear}
                 gradePublished={gradePublished}
                 onToggleGradePublication={handleToggleGradePublication}
+                studentPdfPrintAllowed={studentPdfPrintAllowed}
+                onToggleStudentPdfPrint={() => {
+                  const newVal = !studentPdfPrintAllowed;
+                  handleToggleGlobalPdfPrint(newVal);
+                  showNotification(newVal ? 'የተማሪዎች ፒዲኤፍ ማተም ሁነታ ተፈቅዷል!' : 'የተማሪዎች ፒዲኤፍ ማተም ሁነታ ታግዷል!', newVal ? 'success' : 'warning');
+                }}
+                onOpenReleaseManager={() => setIsReleaseManagerOpen(true)}
+                onOpenArchiveModal={() => setIsArchiveModalOpen(true)}
                 courses={courses}
                 students={students}
                 teachers={teachers}
@@ -1066,6 +1238,13 @@ export default function App() {
                 availableYears={availableYears}
                 gradePublished={gradePublished}
                 onToggleGradePublication={handleToggleGradePublication}
+                studentPdfPrintAllowed={studentPdfPrintAllowed}
+                onToggleStudentPdfPrint={() => {
+                  const newVal = !studentPdfPrintAllowed;
+                  handleToggleGlobalPdfPrint(newVal);
+                  showNotification(newVal ? 'የተማሪዎች ፒዲኤፍ ማተም ሁነታ ተፈቅዷል!' : 'የተማሪዎች ፒዲኤፍ ማተም ሁነታ ታግዷል!', newVal ? 'success' : 'warning');
+                }}
+                onOpenReleaseManager={() => setIsReleaseManagerOpen(true)}
                 onOpenAddStudent={() => setIsStudentModalOpen(true)}
                 onOpenPhotoModal={(sid) => setPhotoModalStudentUid(sid)}
                 onSelectPrintTranscript={(s) => setTranscriptStudent(s)}
@@ -1076,7 +1255,10 @@ export default function App() {
                 churchLogo={churchLogo}
                 onUpdateStudents={(updated) => setStudents(updated)}
                 teachers={teachers}
+                userPasswords={userPasswords}
+                onOpenPasswordModal={(uid, name) => setPasswordModalData({ isOpen: true, targetKey: uid, displayName: name })}
               />
+
 
             )}
 
@@ -1107,6 +1289,11 @@ export default function App() {
                 currentYear={currentYear}
                 currentSemester={currentSemester}
                 gradePublished={gradePublished}
+                individualGradeRelease={individualGradeRelease}
+                fullTranscriptPublished={fullTranscriptPublished}
+                individualFullTranscriptRelease={individualFullTranscriptRelease}
+                studentPdfPrintAllowed={studentPdfPrintAllowed}
+                individualPdfPrintAllowed={individualPdfPrintAllowed}
                 officialConfig={officialConfig}
                 churchLogo={churchLogo}
                 onOpenTranscript={() => setTranscriptStudent(activeStudent)}
@@ -1175,6 +1362,14 @@ export default function App() {
           onClose={() => setTranscriptStudent(null)}
           churchLogo={churchLogo}
           officialConfig={officialConfig}
+          allowPdfPrint={
+            currentUser?.role !== 'STUDENT'
+              ? true
+              : (individualPdfPrintAllowed[transcriptStudent.uid] !== undefined
+                  ? individualPdfPrintAllowed[transcriptStudent.uid]
+                  : studentPdfPrintAllowed) === true
+          }
+          isStudentViewer={currentUser?.role === 'STUDENT'}
         />
       )}
 
@@ -1204,6 +1399,30 @@ export default function App() {
           officialConfig={officialConfig}
           onClose={() => setIsArchiveModalOpen(false)}
           onOpenStudentTranscript={(student) => setTranscriptStudent(student)}
+        />
+      )}
+
+      {/* Grade & Transcript Release Manager Modal (Bulk and Selective per Student) */}
+      {isReleaseManagerOpen && (
+        <GradeReleaseManagerModal
+          students={students}
+          gradePublished={gradePublished}
+          individualGradeRelease={individualGradeRelease}
+          fullTranscriptPublished={fullTranscriptPublished}
+          individualFullTranscriptRelease={individualFullTranscriptRelease}
+          studentPdfPrintAllowed={studentPdfPrintAllowed}
+          individualPdfPrintAllowed={individualPdfPrintAllowed}
+          onToggleGlobalRelease={(val) => setGradePublished(val)}
+          onSetIndividualRelease={handleSetIndividualRelease}
+          onBatchSetRelease={handleBatchSetRelease}
+          onToggleGlobalFullTranscript={handleToggleGlobalFullTranscript}
+          onSetIndividualFullTranscript={handleSetIndividualFullTranscript}
+          onBatchSetFullTranscript={handleBatchSetFullTranscript}
+          onToggleGlobalPdfPrint={handleToggleGlobalPdfPrint}
+          onSetIndividualPdfPrint={handleSetIndividualPdfPrint}
+          onBatchSetPdfPrint={handleBatchSetPdfPrint}
+          onClose={() => setIsReleaseManagerOpen(false)}
+          showNotify={showNotification}
         />
       )}
     </div>
