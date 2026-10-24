@@ -202,21 +202,21 @@ export const MasterGradeReportPdfModal: React.FC<MasterGradeReportPdfModalProps>
                   <table className="w-full text-left text-[11px] border-collapse">
                     <thead className="bg-slate-100 uppercase font-bold text-slate-800 border-b border-slate-300">
                       <tr>
-                        <th className="p-2 border-r border-slate-300 text-center w-7">ተ.ቁ</th>
-                        <th className="p-2 border-r border-slate-300 w-24">ID</th>
-                        <th className="p-2 border-r border-slate-300">የተማሪ ስም</th>
-                        <th className="p-2 border-r border-slate-300 text-center w-10">ጾታ</th>
-                        <th className="p-2 border-r border-slate-300 text-center w-16">ደረጃ</th>
+                        <th className="p-2 border-r border-slate-300 text-center w-7 whitespace-nowrap">ተ.ቁ</th>
+                        <th className="p-2 border-r border-slate-300 w-24 whitespace-nowrap">ID</th>
+                        <th className="p-2 border-r border-slate-300 whitespace-nowrap min-w-[140px]">የተማሪ ስም</th>
+                        <th className="p-2 border-r border-slate-300 text-center w-10 whitespace-nowrap">ጾታ</th>
+                        <th className="p-2 border-r border-slate-300 text-center w-16 whitespace-nowrap">ደረጃ</th>
                         {progCourses.map((c) => (
                           <th key={c.id} className="p-2 border-r border-slate-300 text-center min-w-[70px]">
                             <span className="block truncate max-w-[85px]" title={c.name}>{c.name}</span>
                             <span className="text-[9px] font-mono font-bold text-slate-500">({c.credits}cr)</span>
                           </th>
                         ))}
-                        <th className="p-2 border-r border-slate-300 text-center font-bold bg-amber-50 text-amber-950 w-16">
+                        <th className="p-2 border-r border-slate-300 text-center font-bold bg-amber-50 text-amber-950 w-16 whitespace-nowrap">
                           GPA
                         </th>
-                        <th className="p-2 text-center w-24">አቋም</th>
+                        <th className="p-2 text-center w-24 whitespace-nowrap">አቋም</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200">
@@ -229,10 +229,10 @@ export const MasterGradeReportPdfModal: React.FC<MasterGradeReportPdfModalProps>
                             <td className="p-1.5 border-r border-slate-200 text-center font-mono text-slate-500">
                               {idx + 1}
                             </td>
-                            <td className="p-1.5 border-r border-slate-200 font-mono font-bold text-slate-900">
+                            <td className="p-1.5 border-r border-slate-200 font-mono font-bold text-slate-900 whitespace-nowrap">
                               {student.id}
                             </td>
-                            <td className="p-1.5 border-r border-slate-200 font-bold text-slate-900">
+                            <td className="p-1.5 border-r border-slate-200 font-bold text-slate-900 whitespace-nowrap student-name">
                               {student.name}
                             </td>
                             <td className="p-1.5 border-r border-slate-200 text-center text-slate-600">

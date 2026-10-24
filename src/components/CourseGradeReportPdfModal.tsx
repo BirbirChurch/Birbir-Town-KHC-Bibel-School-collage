@@ -33,6 +33,7 @@ interface CourseGradeReportPdfModalProps {
   churchLogo?: string;
   officialConfig?: OfficialSignaturesConfig;
   onClose: () => void;
+  autoDownload?: boolean;
 }
 
 export const CourseGradeReportPdfModal: React.FC<CourseGradeReportPdfModalProps> = ({
@@ -43,7 +44,8 @@ export const CourseGradeReportPdfModal: React.FC<CourseGradeReportPdfModalProps>
   currentSemester,
   churchLogo,
   officialConfig,
-  onClose
+  onClose,
+  autoDownload
 }) => {
   const enrolled = students.filter((s) => s.program === course.program);
   const criteria = getCourseAssessmentItems(course);
@@ -62,6 +64,15 @@ export const CourseGradeReportPdfModal: React.FC<CourseGradeReportPdfModalProps>
       setIsExportingPdf(false);
     }
   };
+
+  React.useEffect(() => {
+    if (autoDownload) {
+      const timer = setTimeout(() => {
+        handleDownloadPdf();
+      }, 350);
+      return () => clearTimeout(timer);
+    }
+  }, [autoDownload]);
 
   const handlePrint = () => {
     printElementDirectly('printable-course-grade-report');
@@ -294,10 +305,10 @@ export const CourseGradeReportPdfModal: React.FC<CourseGradeReportPdfModalProps>
             <table className="w-full text-left text-xs border-collapse">
               <thead className="bg-slate-100 text-[10px] uppercase font-bold text-slate-800 border-b border-slate-300">
                 <tr>
-                  <th className="p-2 border-r border-slate-300 text-center w-8">ተ.ቁ</th>
-                  <th className="p-2 border-r border-slate-300 w-28">መለያ ቁጥር (ID)</th>
-                  <th className="p-2 border-r border-slate-300">የተማሪ ሙሉ ስም</th>
-                  <th className="p-2 border-r border-slate-300 text-center w-12">ጾታ</th>
+                  <th className="p-2 border-r border-slate-300 text-center w-8 whitespace-nowrap">ተ.ቁ</th>
+                  <th className="p-2 border-r border-slate-300 w-28 whitespace-nowrap">መለያ ቁጥር (ID)</th>
+                  <th className="p-2 border-r border-slate-300 whitespace-nowrap min-w-[150px]">የተማሪ ሙሉ ስም</th>
+                  <th className="p-2 border-r border-slate-300 text-center w-12 whitespace-nowrap">ጾታ</th>
                   {criteria.map((c) => (
                     <th key={c.id} className="p-2 border-r border-slate-300 text-center min-w-[55px]">
                       <span className="block truncate">{c.label}</span>
@@ -324,10 +335,10 @@ export const CourseGradeReportPdfModal: React.FC<CourseGradeReportPdfModalProps>
                       <td className="p-2 border-r border-slate-200 text-center font-mono text-slate-500">
                         {idx + 1}
                       </td>
-                      <td className="p-2 border-r border-slate-200 font-mono font-bold text-slate-900">
+                      <td className="p-2 border-r border-slate-200 font-mono font-bold text-slate-900 whitespace-nowrap">
                         {student.id}
                       </td>
-                      <td className="p-2 border-r border-slate-200 font-bold text-slate-900">
+                      <td className="p-2 border-r border-slate-200 font-bold text-slate-900 whitespace-nowrap student-name">
                         {student.name}
                       </td>
                       <td className="p-2 border-r border-slate-200 text-center text-slate-600">

@@ -123,10 +123,23 @@ export const TeacherPortal: React.FC<TeacherPortalProps> = ({
   const [isSchemeModalOpen, setIsSchemeModalOpen] = useState(false);
   const [isExcelUploadOpen, setIsExcelUploadOpen] = useState(false);
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+  const [pdfAutoDownload, setPdfAutoDownload] = useState(false);
   const [isInlineEditorOpen, setIsInlineEditorOpen] = useState(true);
   const [modalViewMode, setModalViewMode] = useState<'horizontal' | 'grid'>('horizontal');
   const inlineScrollRef = useRef<HTMLDivElement>(null);
   const modalScrollRef = useRef<HTMLDivElement>(null);
+
+  const handleTriggerDirectPdfDownload = () => {
+    if (!activeCourse) return;
+    setPdfAutoDownload(true);
+    setIsPdfModalOpen(true);
+    showNotify(`የ${activeCourse.name} ውጤት ሰነድ በፒዲኤፍ (PDF) በቀጥታ በመውረድ ላይ ነው...`, 'info');
+  };
+
+  const handleOpenPdfPreview = () => {
+    setPdfAutoDownload(false);
+    setIsPdfModalOpen(true);
+  };
 
   const scrollHorizontal = (ref: React.RefObject<HTMLDivElement | null>, direction: 'left' | 'right') => {
     if (ref.current) {
@@ -936,12 +949,23 @@ export const TeacherPortal: React.FC<TeacherPortalProps> = ({
                   <span>ኤክሴል አውርድ (.xlsx)</span>
                 </button>
 
-                {/* Official PDF / Print Button (ይፋዊ ሰነድ / ፕዴፍ) */}
+                {/* Direct PDF Download Button (ቀጥታ PDF አውርድ) */}
                 <button
                   type="button"
-                  onClick={() => setIsPdfModalOpen(true)}
+                  onClick={handleTriggerDirectPdfDownload}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3.5 py-2 rounded-xl font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-md hover:shadow-lg"
+                  title="የውጤት ሰነዱን በፒዲኤፍ (PDF) በቀጥታ ለማውረድ ይጫኑ"
+                >
+                  <Download className="w-3.5 h-3.5 text-white" />
+                  <span>PDF ቀጥታ አውርድ</span>
+                </button>
+
+                {/* Official PDF / Print Button (ይፋዊ ሰነድ / ፕሪንት) */}
+                <button
+                  type="button"
+                  onClick={handleOpenPdfPreview}
                   className="bg-cyan-50 hover:bg-cyan-100 text-cyan-950 border border-cyan-300 text-xs px-3.5 py-2 rounded-xl font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                  title="ይፋዊ የውጤት ሰነድ ለማተም ወይም በፒዲኤፍ (PDF) ለማስቀመጥ"
+                  title="ይፋዊ የውጤት ሰነድ ለማየትና ለማተም"
                 >
                   <Printer className="w-3.5 h-3.5 text-cyan-700" />
                   <span>ይፋዊ ሰነድ (PDF)</span>
@@ -1965,7 +1989,11 @@ export const TeacherPortal: React.FC<TeacherPortalProps> = ({
           currentSemester={currentSemester}
           churchLogo={churchLogo}
           officialConfig={officialConfig}
-          onClose={() => setIsPdfModalOpen(false)}
+          onClose={() => {
+            setIsPdfModalOpen(false);
+            setPdfAutoDownload(false);
+          }}
+          autoDownload={pdfAutoDownload}
         />
       )}
     </div>

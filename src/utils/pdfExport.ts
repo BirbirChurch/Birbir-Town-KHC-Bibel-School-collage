@@ -69,11 +69,24 @@ export async function downloadElementAsPdf(
           (tbl as HTMLElement).style.tableLayout = 'auto';
         });
 
-        // 3. Ensure table cell content wraps properly
+        // 3. Ensure student names, IDs, and crucial column headers do NOT wrap vertically
         const cells = clonedElement.querySelectorAll('th, td');
         cells.forEach((c) => {
-          (c as HTMLElement).style.whiteSpace = 'normal';
-          (c as HTMLElement).style.wordBreak = 'break-word';
+          const text = c.textContent || '';
+          if (
+            c.classList.contains('whitespace-nowrap') ||
+            c.classList.contains('student-name') ||
+            text.includes('ስም') ||
+            text.includes('መለያ') ||
+            text.includes('ID') ||
+            text.length <= 25
+          ) {
+            (c as HTMLElement).style.whiteSpace = 'nowrap';
+            (c as HTMLElement).style.wordBreak = 'keep-all';
+          } else {
+            (c as HTMLElement).style.whiteSpace = 'normal';
+            (c as HTMLElement).style.wordBreak = 'break-word';
+          }
         });
 
         // Clean any SVG images that might taint canvas by converting to base64 if needed
@@ -244,8 +257,10 @@ export function printElementDirectly(
             th, td {
               border-color: #94a3b8 !important;
               padding: 4px 6px !important;
-              word-break: break-word !important;
-              white-space: normal !important;
+            }
+            .whitespace-nowrap, th, td.student-name, td:nth-child(2), td:nth-child(3) {
+              white-space: nowrap !important;
+              word-break: keep-all !important;
             }
           </style>
         </head>
