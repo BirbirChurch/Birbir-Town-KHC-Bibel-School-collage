@@ -56,6 +56,49 @@ const DEFAULT_ACADEMIC_YEARS = [
   '2025', '2026', '2027', '2028', '2029', '2030'
 ];
 
+function mergeStudentsWithPreloaded(incomingStudents: Student[]): Student[] {
+  if (!Array.isArray(incomingStudents)) return sortStudentsByAmharicName(PRELOADED_STUDENTS);
+  const merged = [...incomingStudents];
+  PRELOADED_STUDENTS.forEach((ps) => {
+    if (!merged.some((s) => s.uid === ps.uid || (s.id === ps.id && s.program === ps.program))) {
+      merged.push(ps);
+    }
+  });
+  return sortStudentsByAmharicName(merged);
+}
+
+function mergeGradesWithPreloaded(incomingGrades: Record<string, GradeBreakdown>): Record<string, GradeBreakdown> {
+  const merged = { ...incomingGrades };
+  const sample = generateInitialSampleGrades(PRELOADED_STUDENTS, PRELOADED_COURSES);
+  Object.keys(sample).forEach((k) => {
+    if (!merged[k]) {
+      merged[k] = sample[k];
+    }
+  });
+  if (!merged['dip_201927_dip_c2_2019_1']) {
+    merged['dip_201927_dip_c2_2019_1'] = { p1: 29, p2: 14, mid: 38, final: 15, att: 0 };
+  }
+  if (!merged['dip_201928_dip_c2_2019_1']) {
+    merged['dip_201928_dip_c2_2019_1'] = { p1: 30, p2: 15, mid: 38, final: 15, att: 0 };
+  }
+  return merged;
+}
+
+function mergePasswordsWithPreloaded(incomingPasswords: Record<string, string>): Record<string, string> {
+  const merged = { ...incomingPasswords };
+  PRELOADED_TEACHERS.forEach((t, idx) => {
+    if (!t.includes('—') && (!merged[t] || merged[t] === 'teacher123')) {
+      merged[t] = DEFAULT_TEACHER_KEYS[t] || generateTeacherKey(t, idx + 1);
+    }
+  });
+  PRELOADED_STUDENTS.forEach((s, idx) => {
+    if (!merged[s.uid] || merged[s.uid] === s.id) {
+      merged[s.uid] = DEFAULT_STUDENT_PASSKEYS[s.uid] || generateStudentPasskey(s, idx + 1);
+    }
+  });
+  return merged;
+}
+
 export default function App() {
   // Current user state
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
@@ -98,15 +141,10 @@ export default function App() {
   const [students, setStudents] = useState<Student[]>(() => {
     try {
       const stored = localStorage.getItem('bk_students');
-      let list: Student[] = stored ? JSON.parse(stored) : [...PRELOADED_STUDENTS];
-      PRELOADED_STUDENTS.forEach((ps) => {
-        if (!list.some((s) => s.uid === ps.uid || (s.id === ps.id && s.program === ps.program))) {
-          list.push(ps);
-        }
-      });
-      return sortStudentsByAmharicName(list);
+      const list = stored ? JSON.parse(stored) : PRELOADED_STUDENTS;
+      return mergeStudentsWithPreloaded(list);
     } catch {
-      return sortStudentsByAmharicName(PRELOADED_STUDENTS);
+      return mergeStudentsWithPreloaded(PRELOADED_STUDENTS);
     }
   });
 
@@ -125,21 +163,14 @@ export default function App() {
   const [grades, setGrades] = useState<Record<string, GradeBreakdown>>(() => {
     try {
       const stored = localStorage.getItem('bk_grades');
-      let parsed: Record<string, GradeBreakdown> = stored ? JSON.parse(stored) : {};
-      const seeded = generateInitialSampleGrades(PRELOADED_STUDENTS, PRELOADED_COURSES);
-      const merged = { ...seeded, ...parsed };
-      if (!merged['dip_201927_dip_c2_2019_1']) {
-        merged['dip_201927_dip_c2_2019_1'] = { p1: 29, p2: 14, mid: 38, final: 15, att: 0 };
-      }
-      if (!merged['dip_201928_dip_c2_2019_1']) {
-        merged['dip_201928_dip_c2_2019_1'] = { p1: 30, p2: 15, mid: 38, final: 15, att: 0 };
-      }
+      const parsed = stored ? JSON.parse(stored) : {};
+      const merged = mergeGradesWithPreloaded(parsed);
       try {
         localStorage.setItem('bk_grades', JSON.stringify(merged));
       } catch (_) {}
       return merged;
     } catch {
-      return generateInitialSampleGrades(PRELOADED_STUDENTS, PRELOADED_COURSES);
+      return mergeGradesWithPreloaded({});
     }
   });
 
@@ -408,12 +439,26 @@ export default function App() {
           const remoteState = await loadInitialFromFirestore();
           if (remoteState) {
             isRemoteUpdateRef.current = true;
-            if (remoteState.students) setStudents(remoteState.students);
+            if (remoteState.students) {
+              const merged = mergeStudentsWithPreloaded(remoteState.students);
+              setStudents(merged);
+              if (merged.length > remoteState.students.length) {
+                syncStudentsToFirestore(merged);
+              }
+            }
             if (remoteState.teachers) setTeachers(remoteState.teachers);
             if (remoteState.courses) setCourses(remoteState.courses);
-            if (remoteState.grades) setGrades(remoteState.grades);
+            if (remoteState.grades) {
+              const merged = mergeGradesWithPreloaded(remoteState.grades);
+              setGrades(merged);
+              syncGradesToFirestore(merged);
+            }
             if (remoteState.photos) setPhotos(remoteState.photos);
-            if (remoteState.userPasswords) setUserPasswords(remoteState.userPasswords);
+            if (remoteState.userPasswords) {
+              const merged = mergePasswordsWithPreloaded(remoteState.userPasswords);
+              setUserPasswords(merged);
+              syncPasswordsToFirestore(merged);
+            }
             if (remoteState.availableYears) setAvailableYears(remoteState.availableYears);
             if (typeof remoteState.systemLocked === 'boolean') setSystemLocked(remoteState.systemLocked);
             if (typeof remoteState.gradePublished === 'boolean') setGradePublished(remoteState.gradePublished);
@@ -482,7 +527,11 @@ export default function App() {
             },
             onStudentsChange: (newStudents) => {
               isRemoteUpdateRef.current = true;
-              setStudents(newStudents);
+              const merged = mergeStudentsWithPreloaded(newStudents);
+              setStudents(merged);
+              if (merged.length > newStudents.length) {
+                syncStudentsToFirestore(merged);
+              }
               setTimeout(() => { isRemoteUpdateRef.current = false; }, 300);
             },
             onCoursesChange: (newCourses) => {
@@ -492,12 +541,14 @@ export default function App() {
             },
             onGradesChange: (newGrades) => {
               isRemoteUpdateRef.current = true;
-              setGrades(newGrades);
+              const merged = mergeGradesWithPreloaded(newGrades);
+              setGrades(merged);
               setTimeout(() => { isRemoteUpdateRef.current = false; }, 300);
             },
             onPasswordsChange: (newPasswords) => {
               isRemoteUpdateRef.current = true;
-              setUserPasswords(newPasswords);
+              const merged = mergePasswordsWithPreloaded(newPasswords);
+              setUserPasswords(merged);
               setTimeout(() => { isRemoteUpdateRef.current = false; }, 300);
             },
             onPhotosChange: (newPhotos) => {
@@ -593,12 +644,24 @@ export default function App() {
       const remoteState = await loadInitialFromFirestore();
       if (remoteState) {
         isRemoteUpdateRef.current = true;
-        if (remoteState.students) setStudents(remoteState.students);
+        if (remoteState.students) {
+          const merged = mergeStudentsWithPreloaded(remoteState.students);
+          setStudents(merged);
+          syncStudentsToFirestore(merged);
+        }
         if (remoteState.teachers) setTeachers(remoteState.teachers);
         if (remoteState.courses) setCourses(remoteState.courses);
-        if (remoteState.grades) setGrades(remoteState.grades);
+        if (remoteState.grades) {
+          const merged = mergeGradesWithPreloaded(remoteState.grades);
+          setGrades(merged);
+          syncGradesToFirestore(merged);
+        }
         if (remoteState.photos) setPhotos(remoteState.photos);
-        if (remoteState.userPasswords) setUserPasswords(remoteState.userPasswords);
+        if (remoteState.userPasswords) {
+          const merged = mergePasswordsWithPreloaded(remoteState.userPasswords);
+          setUserPasswords(merged);
+          syncPasswordsToFirestore(merged);
+        }
         if (remoteState.availableYears) setAvailableYears(remoteState.availableYears);
         if (typeof remoteState.systemLocked === 'boolean') setSystemLocked(remoteState.systemLocked);
         if (typeof remoteState.gradePublished === 'boolean') setGradePublished(remoteState.gradePublished);
