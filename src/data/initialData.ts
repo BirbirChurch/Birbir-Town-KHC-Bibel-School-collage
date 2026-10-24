@@ -70,7 +70,9 @@ const RAW_STUDENTS_DIPLOMA: Student[] = [
   { uid: 'dip_201922', id: '201922', name: 'ዘላለም ማዴቦ', gender: 'ሴት', program: 'Diploma', admissionYear: '2019', currentStudyYear: 1, graduationStatus: 'ACTIVE' },
   { uid: 'dip_201924', id: '201924', name: 'አማኑኤል አዴማ', gender: 'ወንድ', program: 'Diploma', admissionYear: '2019', currentStudyYear: 1, graduationStatus: 'ACTIVE' },
   { uid: 'dip_201925', id: '201925', name: 'ከፍያለዉ ከማል', gender: 'ወንድ', program: 'Diploma', admissionYear: '2019', currentStudyYear: 1, graduationStatus: 'ACTIVE' },
-  { uid: 'dip_201926', id: '201926', name: 'አበራሽ አዳዬ', gender: 'ሴት', program: 'Diploma', admissionYear: '2019', currentStudyYear: 1, graduationStatus: 'ACTIVE' }
+  { uid: 'dip_201926', id: '201926', name: 'አበራሽ አዳዬ', gender: 'ሴት', program: 'Diploma', admissionYear: '2019', currentStudyYear: 1, graduationStatus: 'ACTIVE' },
+  { uid: 'dip_201927', id: '201927', name: 'በድሉ በላይ', gender: 'ወንድ', program: 'Diploma', admissionYear: '2019', currentStudyYear: 1, graduationStatus: 'ACTIVE' },
+  { uid: 'dip_201928', id: '201928', name: 'ወዳጆ ቶሮ', gender: 'ወንድ', program: 'Diploma', admissionYear: '2019', currentStudyYear: 1, graduationStatus: 'ACTIVE' }
 ];
 
 // Raw Degree Student Roster (35 Students)
@@ -340,6 +342,8 @@ export const DEFAULT_STUDENT_PASSKEYS: Record<string, string> = {
   'dip_201924': 'ST-6821',
   'dip_201925': 'ST-4592',
   'dip_201926': 'ST-8147',
+  'dip_201927': 'ST-8294',
+  'dip_201928': 'ST-7139',
 
   // Degree 2nd Year (Prior Bible Diploma Candidates)
   'deg_201901': 'ST-3619',

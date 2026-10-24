@@ -268,5 +268,9 @@ export function generateInitialSampleGrades(
     });
   });
 
+  // Explicit grades for newly added Diploma students for 'አጠናን ዘዴ' (dip_c2)
+  sample['dip_201927_dip_c2_2019_1'] = { p1: 29, p2: 14, mid: 38, final: 15, att: 0 };
+  sample['dip_201928_dip_c2_2019_1'] = { p1: 30, p2: 15, mid: 38, final: 15, att: 0 };
+
   return sample;
 }

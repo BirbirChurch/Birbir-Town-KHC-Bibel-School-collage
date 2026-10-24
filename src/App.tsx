@@ -98,7 +98,12 @@ export default function App() {
   const [students, setStudents] = useState<Student[]>(() => {
     try {
       const stored = localStorage.getItem('bk_students');
-      const list = stored ? JSON.parse(stored) : PRELOADED_STUDENTS;
+      let list: Student[] = stored ? JSON.parse(stored) : [...PRELOADED_STUDENTS];
+      PRELOADED_STUDENTS.forEach((ps) => {
+        if (!list.some((s) => s.uid === ps.uid || (s.id === ps.id && s.program === ps.program))) {
+          list.push(ps);
+        }
+      });
       return sortStudentsByAmharicName(list);
     } catch {
       return sortStudentsByAmharicName(PRELOADED_STUDENTS);
@@ -120,17 +125,19 @@ export default function App() {
   const [grades, setGrades] = useState<Record<string, GradeBreakdown>>(() => {
     try {
       const stored = localStorage.getItem('bk_grades');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
-          return parsed;
-        }
-      }
+      let parsed: Record<string, GradeBreakdown> = stored ? JSON.parse(stored) : {};
       const seeded = generateInitialSampleGrades(PRELOADED_STUDENTS, PRELOADED_COURSES);
+      const merged = { ...seeded, ...parsed };
+      if (!merged['dip_201927_dip_c2_2019_1']) {
+        merged['dip_201927_dip_c2_2019_1'] = { p1: 29, p2: 14, mid: 38, final: 15, att: 0 };
+      }
+      if (!merged['dip_201928_dip_c2_2019_1']) {
+        merged['dip_201928_dip_c2_2019_1'] = { p1: 30, p2: 15, mid: 38, final: 15, att: 0 };
+      }
       try {
-        localStorage.setItem('bk_grades', JSON.stringify(seeded));
+        localStorage.setItem('bk_grades', JSON.stringify(merged));
       } catch (_) {}
-      return seeded;
+      return merged;
     } catch {
       return generateInitialSampleGrades(PRELOADED_STUDENTS, PRELOADED_COURSES);
     }
