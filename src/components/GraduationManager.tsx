@@ -25,9 +25,13 @@ import {
   X,
   History,
   Layers,
-  Upload
+  Upload,
+  Sliders,
+  Settings2,
+  Percent,
+  RotateCcw
 } from 'lucide-react';
-import { Course, GradeBreakdown, OfficialSignaturesConfig, ProgramType, Student, UserRole } from '../types.ts';
+import { AssessmentCriterionItem, Course, GradeBreakdown, OfficialSignaturesConfig, ProgramType, Student, UserRole } from '../types.ts';
 import { sortStudentsByAmharicName } from '../utils/amharicSort.ts';
 import {
   calculateGradeDetails,
@@ -163,6 +167,170 @@ export const GraduationManager: React.FC<GraduationManagerProps> = ({
   // Add/Edit Course Modal State for 2018 Historical Courses
   const [isCourseModalOpen, setIsCourseModalOpen] = useState(false);
   const [editingCourseTarget, setEditingCourseTarget] = useState<Course | null>(null);
+
+  // Assessment Criteria Customization State (መምህሩ ባስፈተነበት መንገድ መጨመር/መቀነስ/ኤዲት ማድረጊያ)
+  const [isCriterionModalOpen, setIsCriterionModalOpen] = useState(false);
+  const [editingCriterionTarget, setEditingCriterionTarget] = useState<AssessmentCriterionItem | null>(null);
+  const [criterionFormLabel, setCriterionFormLabel] = useState('');
+  const [criterionFormMax, setCriterionFormMax] = useState<number>(20);
+
+  // Helper to persist updated criteria on selected course
+  const updateGradCourseCriteria = (newItems: AssessmentCriterionItem[]) => {
+    if (!selectedGradCourse) return;
+    const updatedCourse: Course = {
+      ...selectedGradCourse,
+      assessmentConfig: {
+        items: newItems,
+        p1Label: newItems[0]?.label || 'ክፍል 1',
+        p1Max: newItems[0]?.max || 20,
+        p2Label: newItems[1]?.label || 'ክፍል 2',
+        p2Max: newItems[1]?.max || 20,
+        midLabel: newItems[2]?.label || 'ሚድ',
+        midMax: newItems[2]?.max || 30,
+        finalLabel: newItems[3]?.label || 'ፋይናል',
+        finalMax: newItems[3]?.max || 20,
+        attLabel: newItems[4]?.label || 'ተሳትፎ',
+        attMax: newItems[4]?.max || 10
+      }
+    };
+
+    const updatedCourses = historical2018Courses.map((c) =>
+      c.id === selectedGradCourse.id ? updatedCourse : c
+    );
+    setHistorical2018Courses(updatedCourses);
+    saveHistorical2018Courses(updatedCourses);
+  };
+
+  // Add a new criterion
+  const handleAddGradCriterion = (customLabel?: string, customMax?: number) => {
+    if (!selectedGradCourse) return;
+    const currentCriteria = getCourseAssessmentItems(selectedGradCourse);
+    if (currentCriteria.length >= 10) {
+      showNotify('ከ 10 መመዘኛ በላይ ማከል አይቻልም!', 'warning');
+      return;
+    }
+    const nextNum = currentCriteria.length + 1;
+    const newItem: AssessmentCriterionItem = {
+      id: 'crit_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 5),
+      label: customLabel || `መመዘኛ ${nextNum}`,
+      max: typeof customMax === 'number' ? customMax : 20
+    };
+    updateGradCourseCriteria([...currentCriteria, newItem]);
+    showNotify(`አዲስ የውጤት መመዘኛ «${newItem.label}» (${newItem.max}%) ተጨምሯል!`, 'success');
+  };
+
+  // Remove a criterion
+  const handleRemoveGradCriterion = (criterionId: string, label: string) => {
+    if (!selectedGradCourse) return;
+    const currentCriteria = getCourseAssessmentItems(selectedGradCourse);
+    if (currentCriteria.length <= 1) {
+      showNotify('ቢያንስ 1 የውጤት ማስገቢያ መመዘኛ መኖር አለበት!', 'warning');
+      return;
+    }
+    if (window.confirm(`እርግጠኛ ነዎት? «${label}» የሚለውን የውጤት ማስገቢያ መቀነስ/ማስወገድ ይፈልጋሉ?`)) {
+      const remaining = currentCriteria.filter((it) => it.id !== criterionId);
+      updateGradCourseCriteria(remaining);
+      showNotify(`የውጤት ማስገቢያ «${label}» ተቀንሷል!`, 'info');
+    }
+  };
+
+  // Open Edit Criterion Modal
+  const handleOpenCriterionModal = (criterion?: AssessmentCriterionItem) => {
+    if (criterion) {
+      setEditingCriterionTarget(criterion);
+      setCriterionFormLabel(criterion.label);
+      setCriterionFormMax(criterion.max);
+    } else {
+      const currentCriteria = selectedGradCourse ? getCourseAssessmentItems(selectedGradCourse) : [];
+      setEditingCriterionTarget(null);
+      setCriterionFormLabel(`መመዘኛ ${currentCriteria.length + 1}`);
+      setCriterionFormMax(20);
+    }
+    setIsCriterionModalOpen(true);
+  };
+
+  // Save Criterion from Modal
+  const handleSaveCriterionModal = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedGradCourse) return;
+    const cleanLabel = criterionFormLabel.trim();
+    if (!cleanLabel) {
+      showNotify('እባክዎ የመመዘኛውን ስም ያስገቡ!', 'warning');
+      return;
+    }
+    const cleanMax = Math.max(1, Math.min(100, Number(criterionFormMax) || 20));
+    const currentCriteria = getCourseAssessmentItems(selectedGradCourse);
+
+    if (editingCriterionTarget) {
+      const updated = currentCriteria.map((it) =>
+        it.id === editingCriterionTarget.id ? { ...it, label: cleanLabel, max: cleanMax } : it
+      );
+      updateGradCourseCriteria(updated);
+      showNotify(`የመመዘኛ «${cleanLabel}» መረጃ በስኬት ተስተካክሏል!`, 'success');
+    } else {
+      if (currentCriteria.length >= 10) {
+        showNotify('ከ 10 መመዘኛ በላይ ማከል አይቻልም!', 'warning');
+        return;
+      }
+      const newItem: AssessmentCriterionItem = {
+        id: 'crit_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 5),
+        label: cleanLabel,
+        max: cleanMax
+      };
+      updateGradCourseCriteria([...currentCriteria, newItem]);
+      showNotify(`አዲስ መመዘኛ «${cleanLabel}» (${cleanMax}%) ተጨምሯል!`, 'success');
+    }
+    setIsCriterionModalOpen(false);
+  };
+
+  // Apply Quick Assessment Presets
+  const handleApplyGradPreset = (presetKey: string) => {
+    if (!selectedGradCourse) return;
+    let presetItems: AssessmentCriterionItem[] = [];
+    if (presetKey === '1_100') {
+      presetItems = [{ id: 'crit_1', label: 'ፈተና/ምዘና', max: 100 }];
+    } else if (presetKey === '2_50_50') {
+      presetItems = [
+        { id: 'crit_1', label: 'ክፍል 1 (ሚድ)', max: 50 },
+        { id: 'crit_2', label: 'ክፍል 2 (ፋይናል)', max: 50 }
+      ];
+    } else if (presetKey === '2_40_60') {
+      presetItems = [
+        { id: 'crit_1', label: 'ሚድ ፈተና', max: 40 },
+        { id: 'crit_2', label: 'ፋይናል ፈተና', max: 60 }
+      ];
+    } else if (presetKey === '3_30_30_40') {
+      presetItems = [
+        { id: 'crit_1', label: 'ክፍል 1', max: 30 },
+        { id: 'crit_2', label: 'ክፍል 2', max: 30 },
+        { id: 'crit_3', label: 'ፋይናል', max: 40 }
+      ];
+    } else if (presetKey === '3_20_30_50') {
+      presetItems = [
+        { id: 'crit_1', label: 'አሳይመንት', max: 20 },
+        { id: 'crit_2', label: 'ሚድ ፈተና', max: 30 },
+        { id: 'crit_3', label: 'ፋይናል ፈተና', max: 50 }
+      ];
+    } else if (presetKey === '4_20_20_30_30') {
+      presetItems = [
+        { id: 'crit_1', label: 'ክፍል 1', max: 20 },
+        { id: 'crit_2', label: 'ክፍል 2', max: 20 },
+        { id: 'crit_3', label: 'ሚድ', max: 30 },
+        { id: 'crit_4', label: 'ፋይናል', max: 30 }
+      ];
+    } else {
+      presetItems = [
+        { id: 'p1', label: 'ክፍል 1', max: 20 },
+        { id: 'p2', label: 'ክፍል 2', max: 20 },
+        { id: 'mid', label: 'ሚድ', max: 30 },
+        { id: 'final', label: 'ፋይናል', max: 20 },
+        { id: 'att', label: 'ተሳትፎ', max: 10 }
+      ];
+    }
+
+    updateGradCourseCriteria(presetItems);
+    showNotify('የውጤት ማስገቢያ ቅንብር በስኬት ተተግብሯል!', 'success');
+  };
 
   // Form State for Course metadata
   const [formCourseCode, setFormCourseCode] = useState('');
@@ -391,6 +559,43 @@ export const GraduationManager: React.FC<GraduationManagerProps> = ({
           ...(itemId === 'mid' ? { mid: parsed } : {}),
           ...(itemId === 'final' ? { final: parsed } : {}),
           ...(itemId === 'att' ? { att: parsed } : {})
+        }
+      };
+    });
+  };
+
+  // Handle Direct Custom Total Override (ድምር 100%)
+  const handleCustomTotalChange = (studentUid: string, val: string) => {
+    setLocalGradingGrades((prev) => {
+      const current = prev[studentUid] || { p1: 0, p2: 0, mid: 0, final: 0, att: 0 };
+      if (val.trim() === '') {
+        const { customTotal, ...rest } = current;
+        return { ...prev, [studentUid]: rest };
+      }
+      const num = Math.min(100, Math.max(0, parseFloat(val) || 0));
+      return {
+        ...prev,
+        [studentUid]: {
+          ...current,
+          customTotal: num
+        }
+      };
+    });
+  };
+
+  // Handle Direct Custom Letter Override (ደረጃ A+, A, B, ወዘተ)
+  const handleCustomLetterChange = (studentUid: string, val: string) => {
+    setLocalGradingGrades((prev) => {
+      const current = prev[studentUid] || { p1: 0, p2: 0, mid: 0, final: 0, att: 0 };
+      if (!val || val === '—') {
+        const { customLetter, ...rest } = current;
+        return { ...prev, [studentUid]: rest };
+      }
+      return {
+        ...prev,
+        [studentUid]: {
+          ...current,
+          customLetter: val
         }
       };
     });
@@ -1021,7 +1226,7 @@ export const GraduationManager: React.FC<GraduationManagerProps> = ({
             )}
           </div>
 
-          {/* Interactive Grade Entry Table */}
+          {/* Interactive Grade Entry Table & Assessment Customizer */}
           {(() => {
             if (!selectedGradCourse) {
               return <div className="text-xs text-slate-500 py-6 text-center">እባክዎ መጀመሪያ ኮርስ ይምረጡ።</div>;
@@ -1031,93 +1236,299 @@ export const GraduationManager: React.FC<GraduationManagerProps> = ({
             const totalWeight = criteria.reduce((sum, it) => sum + (Number(it.max) || 0), 0);
 
             return (
-              <div className="overflow-x-auto border border-slate-200 rounded-2xl max-h-[500px] overflow-y-auto">
-                <table className="w-full text-left text-xs text-slate-600">
-                  <thead className="bg-slate-100 sticky top-0 font-bold uppercase text-[10px] text-slate-700 z-10 border-b">
-                    <tr>
-                      <th className="p-2.5">ተ.ቁ</th>
-                      <th className="p-2.5">ID</th>
-                      <th className="p-2.5">የተማሪ ሙሉ ስም</th>
-                      <th className="p-2.5 text-center">ጾታ</th>
-                      {criteria.map((it) => (
-                        <th key={it.id} className="p-2 text-center min-w-[70px] bg-indigo-50/50">
-                          <span className="block font-bold truncate max-w-[80px]">{it.label}</span>
-                          <span className="block text-[9px] font-mono font-black text-indigo-900">({it.max}%)</span>
+              <div className="space-y-4">
+                {/* Assessment Scheme & Criteria Customizer (የውጤት ማስገቢያውን መቀነስ፣ መጨመር እንዲሁም ኤዲት ማድረጊያ) */}
+                <div className="bg-slate-50 p-4 rounded-2xl border border-indigo-200/90 shadow-2xs space-y-3">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-indigo-100 pb-2.5">
+                    <div className="flex items-center gap-2">
+                      <Sliders className="w-4 h-4 text-indigo-700" />
+                      <span className="text-xs font-black text-slate-900">
+                        የውጤት ማስገቢያ መመዘኛዎች (መምህሩ ባስፈተነበት መንገድ መቀነስ፣ መጨመርና ኤዲት ማድረጊያ)፦
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span
+                        className={`text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-full border ${
+                          totalWeight === 100
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                            : 'bg-amber-50 text-amber-900 border-amber-300'
+                        }`}
+                      >
+                        የመመዘኛዎች ድምር፦ {totalWeight}%
+                      </span>
+                      {totalWeight !== 100 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (criteria.length === 0) return;
+                            const factor = 100 / totalWeight;
+                            const normalized = criteria.map((c, i) => ({
+                              ...c,
+                              max:
+                                i === criteria.length - 1
+                                  ? 100 - criteria.slice(0, -1).reduce((s, it) => s + Math.round(it.max * factor), 0)
+                                  : Math.round(c.max * factor)
+                            }));
+                            updateGradCourseCriteria(normalized);
+                            showNotify('የመመዘኛዎቹ ድምር ወደ 100% ተስተካክሏል!', 'success');
+                          }}
+                          className="text-[10px] text-amber-900 bg-amber-100 hover:bg-amber-200 font-bold px-2 py-0.5 rounded-lg transition-colors cursor-pointer"
+                          title="ሁሉንም መመዘኛዎች በድምሩ 100% እንዲሆኑ አስተካክል"
+                        >
+                          ወደ 100% አስተካክል
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Criteria Chips with Edit & Delete */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {criteria.map((it) => (
+                      <div
+                        key={it.id}
+                        className="inline-flex items-center gap-1.5 bg-white border border-indigo-200 text-indigo-950 px-2.5 py-1.5 rounded-xl text-xs font-bold shadow-2xs"
+                      >
+                        <span className="font-bold">{it.label}</span>
+                        <span className="bg-indigo-100 text-indigo-900 font-mono text-[10px] px-1.5 py-0.5 rounded-md font-black">
+                          {it.max}%
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenCriterionModal(it)}
+                          className="text-indigo-600 hover:text-indigo-900 p-0.5 rounded hover:bg-indigo-50 transition-colors cursor-pointer"
+                          title="ይህን መመዘኛ ኤዲት አድርግ (ስም ወይም ነጥብ ቀይር)"
+                        >
+                          <Edit className="w-3 h-3" />
+                        </button>
+                        {criteria.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveGradCriterion(it.id, it.label)}
+                            className="text-rose-500 hover:text-rose-700 p-0.5 rounded hover:bg-rose-50 transition-colors cursor-pointer"
+                            title="ይህን መመዘኛ ቀንስ/አስወግድ"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+
+                    <button
+                      type="button"
+                      onClick={() => handleOpenCriterionModal()}
+                      className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs px-3 py-1.5 rounded-xl shadow-2xs transition-all flex items-center gap-1 cursor-pointer"
+                      title="አዲስ የውጤት መመዘኛ ጨምር"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ መመዘኛ ጨምር (Add)</span>
+                    </button>
+                  </div>
+
+                  {/* Quick Presets Buttons */}
+                  <div className="flex items-center gap-2 flex-wrap pt-1 text-[11px] text-slate-500">
+                    <span className="font-bold text-slate-700">ፈጣን ቅንብሮች፦</span>
+                    <button
+                      type="button"
+                      onClick={() => handleApplyGradPreset('1_100')}
+                      className="bg-white hover:bg-indigo-50 hover:text-indigo-950 text-slate-700 px-2.5 py-1 rounded-lg border border-slate-200 transition-colors cursor-pointer font-medium shadow-2xs"
+                    >
+                      1 ፈተና (100%)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleApplyGradPreset('2_50_50')}
+                      className="bg-white hover:bg-indigo-50 hover:text-indigo-950 text-slate-700 px-2.5 py-1 rounded-lg border border-slate-200 transition-colors cursor-pointer font-medium shadow-2xs"
+                    >
+                      2 ክፍሎች (50% / 50%)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleApplyGradPreset('2_40_60')}
+                      className="bg-white hover:bg-indigo-50 hover:text-indigo-950 text-slate-700 px-2.5 py-1 rounded-lg border border-slate-200 transition-colors cursor-pointer font-medium shadow-2xs"
+                    >
+                      2 ክፍሎች (40% / 60%)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleApplyGradPreset('3_30_30_40')}
+                      className="bg-white hover:bg-indigo-50 hover:text-indigo-950 text-slate-700 px-2.5 py-1 rounded-lg border border-slate-200 transition-colors cursor-pointer font-medium shadow-2xs"
+                    >
+                      3 ክፍሎች (30/30/40%)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleApplyGradPreset('3_20_30_50')}
+                      className="bg-white hover:bg-indigo-50 hover:text-indigo-950 text-slate-700 px-2.5 py-1 rounded-lg border border-slate-200 transition-colors cursor-pointer font-medium shadow-2xs"
+                    >
+                      3 ክፍሎች (20/30/50%)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleApplyGradPreset('4_20_20_30_30')}
+                      className="bg-white hover:bg-indigo-50 hover:text-indigo-950 text-slate-700 px-2.5 py-1 rounded-lg border border-slate-200 transition-colors cursor-pointer font-medium shadow-2xs"
+                    >
+                      4 ክፍሎች (20/20/30/30%)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleApplyGradPreset('5_standard')}
+                      className="bg-white hover:bg-indigo-50 hover:text-indigo-950 text-slate-700 px-2.5 py-1 rounded-lg border border-slate-200 transition-colors cursor-pointer font-medium shadow-2xs"
+                    >
+                      መደበኛ 5 ክፍሎች
+                    </button>
+                  </div>
+                </div>
+
+                {/* Score Input Table */}
+                <div className="overflow-x-auto border border-slate-200 rounded-2xl max-h-[520px] overflow-y-auto">
+                  <table className="w-full text-left text-xs text-slate-600">
+                    <thead className="bg-slate-100 sticky top-0 font-bold uppercase text-[10px] text-slate-700 z-10 border-b">
+                      <tr>
+                        <th className="p-2.5">ተ.ቁ</th>
+                        <th className="p-2.5">ID</th>
+                        <th className="p-2.5">የተማሪ ሙሉ ስም</th>
+                        <th className="p-2.5 text-center">ጾታ</th>
+                        {criteria.map((it) => (
+                          <th key={it.id} className="p-2 text-center min-w-[85px] bg-indigo-50/70 border-r border-indigo-100">
+                            <div className="flex items-center justify-center gap-1">
+                              <span className="block font-bold truncate max-w-[80px]" title={it.label}>{it.label}</span>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenCriterionModal(it)}
+                                className="text-slate-400 hover:text-indigo-700 cursor-pointer p-0.5"
+                                title="መመዘኛውን ኤዲት አድርግ"
+                              >
+                                <Edit className="w-2.5 h-2.5" />
+                              </button>
+                              {criteria.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveGradCriterion(it.id, it.label)}
+                                  className="text-slate-400 hover:text-rose-600 cursor-pointer p-0.5"
+                                  title="መመዘኛውን ቀንስ"
+                                >
+                                  <X className="w-2.5 h-2.5" />
+                                </button>
+                              )}
+                            </div>
+                            <span className="block text-[9px] font-mono font-black text-indigo-900">({it.max}%)</span>
+                          </th>
+                        ))}
+                        <th className="p-1.5 text-center bg-indigo-50/40 w-8">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenCriterionModal()}
+                            className="bg-indigo-100 hover:bg-indigo-200 text-indigo-900 rounded-md p-1 transition-colors cursor-pointer"
+                            title="አዲስ የውጤት ማስገቢያ መመዘኛ ጨምር"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
                         </th>
-                      ))}
-                      <th className="p-2.5 text-center bg-emerald-100/70 text-emerald-950 border-b-2 border-emerald-500 font-black">
-                        ድምር ({totalWeight}%)
-                      </th>
-                      <th className="p-2.5 text-center bg-amber-100/70 text-amber-950 border-b-2 border-amber-500 font-black">
-                        ደረጃ
-                      </th>
-                      <th className="p-2.5 text-center bg-slate-100 text-slate-800">ነጥብ</th>
-                      <th className="p-2.5 text-center bg-indigo-50/70 text-indigo-950">የሴሚስተር GPA</th>
-                      <th className="p-2.5 text-right">ትራንስክሪፕት</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {diploma2018Students.map((s, idx) => {
-                      const g = localGradingGrades[s.uid] || { p1: 0, p2: 0, mid: 0, final: 0, att: 0 };
-                      const eff = getEffectiveGradeValues(g, criteria);
-                      const semesterGPA = calculateStudentGPA(s, activeCoursesForGrading, grades, gradingYear, gradingSemester);
+                        <th className="p-2.5 text-center bg-emerald-100/70 text-emerald-950 border-b-2 border-emerald-500 font-black">
+                          ድምር ({totalWeight}%)
+                        </th>
+                        <th className="p-2.5 text-center bg-amber-100/70 text-amber-950 border-b-2 border-amber-500 font-black">
+                          ደረጃ
+                        </th>
+                        <th className="p-2.5 text-center bg-slate-100 text-slate-800">ነጥብ</th>
+                        <th className="p-2.5 text-center bg-indigo-50/70 text-indigo-950">የሴሚስተር GPA</th>
+                        <th className="p-2.5 text-right">ትራንስክሪፕት</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {diploma2018Students.map((s, idx) => {
+                        const g = localGradingGrades[s.uid] || { p1: 0, p2: 0, mid: 0, final: 0, att: 0 };
+                        const eff = getEffectiveGradeValues(g, criteria);
+                        const semesterGPA = calculateStudentGPA(s, activeCoursesForGrading, grades, gradingYear, gradingSemester);
 
-                      return (
-                        <tr key={s.uid} className="hover:bg-slate-50 transition-colors">
-                          <td className="p-2.5 font-mono text-slate-400">{idx + 1}</td>
-                          <td className="p-2.5 font-mono font-bold text-slate-900">{s.id}</td>
-                          <td className="p-2.5 font-bold text-slate-900">{s.name}</td>
-                          <td className="p-2.5 text-center text-slate-600">{s.gender || '—'}</td>
+                        return (
+                          <tr key={s.uid} className="hover:bg-slate-50 transition-colors">
+                            <td className="p-2.5 font-mono text-slate-400">{idx + 1}</td>
+                            <td className="p-2.5 font-mono font-bold text-slate-900">{s.id}</td>
+                            <td className="p-2.5 font-bold text-slate-900">{s.name}</td>
+                            <td className="p-2.5 text-center text-slate-600">{s.gender || '—'}</td>
 
-                          {criteria.map((it) => {
-                            const score = getCriterionScore(g, it.id);
-                            return (
-                              <td key={it.id} className="p-1.5 text-center">
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max={it.max}
-                                  step="0.5"
-                                  placeholder="—"
-                                  value={score === 0 ? '' : score}
-                                  onChange={(e) =>
-                                    handleGradingScoreChange(s.uid, it.id, e.target.value, it.max)
-                                  }
-                                  className="w-14 px-1 py-1 text-center font-mono text-xs border border-indigo-200 rounded-lg bg-white shadow-2xs focus:ring-2 focus:ring-indigo-600"
-                                  title={`${it.label} (ከ ${it.max}%)`}
-                                />
-                              </td>
-                            );
-                          })}
+                            {criteria.map((it) => {
+                              const score = getCriterionScore(g, it.id);
+                              return (
+                                <td key={it.id} className="p-1.5 text-center border-r border-indigo-50">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max={it.max}
+                                    step="0.5"
+                                    placeholder="—"
+                                    value={score === 0 ? '' : score}
+                                    onChange={(e) =>
+                                      handleGradingScoreChange(s.uid, it.id, e.target.value, it.max)
+                                    }
+                                    className="w-14 px-1 py-1 text-center font-mono text-xs border border-indigo-200 rounded-lg bg-white shadow-2xs focus:ring-2 focus:ring-indigo-600"
+                                    title={`${it.label} (ከ ${it.max}%)`}
+                                  />
+                                </td>
+                              );
+                            })}
 
-                          <td className="p-2.5 text-center font-black font-mono text-emerald-900 bg-emerald-50/40">
-                            {eff.hasAny ? eff.total : '—'}
-                          </td>
-                          <td className="p-2.5 text-center font-black text-amber-800 bg-amber-50/40">
-                            {eff.hasAny ? eff.letter : '—'}
-                          </td>
-                          <td className="p-2.5 text-center font-bold font-mono">
-                            {eff.hasAny ? eff.points.toFixed(2) : '—'}
-                          </td>
-                          <td className="p-2.5 text-center font-mono font-bold text-indigo-900 bg-indigo-50/30">
-                            {semesterGPA}
-                          </td>
-                          <td className="p-2.5 text-right">
-                            <button
-                              type="button"
-                              onClick={() => setSelectedTranscriptStudent(s)}
-                              className="bg-indigo-50 hover:bg-indigo-100 text-indigo-900 text-[10px] px-2 py-1 rounded-lg font-bold border border-indigo-200 flex items-center gap-1 ml-auto cursor-pointer"
-                              title="የዚህን ተማሪ ሙሉ ባለ 4 ሴሚስተር የምረቃ ትራንስክሪፕት ይመልከቱ"
-                            >
-                              <Award className="w-3 h-3 text-indigo-700" />
-                              <span>ሙሉ ሰነድ</span>
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                            <td className="p-1 text-center bg-slate-50/50"></td>
+
+                            {/* Total (ድምር) with direct custom edit */}
+                            <td className="p-1.5 text-center bg-emerald-50/40">
+                              <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                step="0.5"
+                                placeholder={eff.hasAny ? String(eff.total) : '—'}
+                                value={typeof g.customTotal === 'number' ? g.customTotal : (eff.hasAny ? eff.total : '')}
+                                onChange={(e) => handleCustomTotalChange(s.uid, e.target.value)}
+                                className="w-16 px-1 py-1 text-center font-black font-mono text-xs border border-emerald-300 rounded-lg bg-white shadow-2xs text-emerald-950 focus:ring-2 focus:ring-emerald-600"
+                                title="ድምር ውጤት (የተሰላ ወይም ቀጥታ ያስገቡት)"
+                              />
+                            </td>
+
+                            {/* Letter Grade (ደረጃ) with direct custom select */}
+                            <td className="p-1.5 text-center bg-amber-50/40">
+                              <select
+                                value={g.customLetter || (eff.hasAny ? eff.letter : '—')}
+                                onChange={(e) => handleCustomLetterChange(s.uid, e.target.value)}
+                                className="px-1 py-1 text-center font-black text-xs border border-amber-300 rounded-lg bg-white shadow-2xs text-amber-900 focus:ring-2 focus:ring-amber-600 cursor-pointer"
+                                title="የውጤት ፊደል ደረጃ"
+                              >
+                                <option value="—">—</option>
+                                <option value="A+">A+</option>
+                                <option value="A">A</option>
+                                <option value="B+">B+</option>
+                                <option value="B">B</option>
+                                <option value="C+">C+</option>
+                                <option value="C">C</option>
+                                <option value="D">D</option>
+                                <option value="F">F</option>
+                              </select>
+                            </td>
+
+                            <td className="p-2.5 text-center font-bold font-mono">
+                              {eff.hasAny ? eff.points.toFixed(2) : '—'}
+                            </td>
+                            <td className="p-2.5 text-center font-mono font-bold text-indigo-900 bg-indigo-50/30">
+                              {semesterGPA}
+                            </td>
+                            <td className="p-2.5 text-right">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedTranscriptStudent(s)}
+                                className="bg-indigo-50 hover:bg-indigo-100 text-indigo-900 text-[10px] px-2 py-1 rounded-lg font-bold border border-indigo-200 flex items-center gap-1 ml-auto cursor-pointer"
+                                title="የዚህን ተማሪ ሙሉ ባለ 4 ሴሚስተር የምረቃ ትራንስክሪፕት ይመልከቱ"
+                              >
+                                <Award className="w-3 h-3 text-indigo-700" />
+                                <span>ሙሉ ሰነድ</span>
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             );
           })()}
@@ -1359,6 +1770,101 @@ export const GraduationManager: React.FC<GraduationManagerProps> = ({
                   className="px-4 py-2 bg-indigo-700 hover:bg-indigo-800 text-white font-bold rounded-xl shadow-xs cursor-pointer"
                 >
                   {editingCourseTarget ? 'ለውጦችን መዝግብ' : 'ኮርሱን መዝግብ'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Assessment Criterion Add/Edit Modal (የውጤት መመዘኛ ማስተካከያ ሞዳል) */}
+      {isCriterionModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-3xl p-6 shadow-2xl max-w-md w-full border border-slate-200 space-y-4 animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center border-b pb-3">
+              <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                <Sliders className="w-5 h-5 text-indigo-700" />
+                <span>
+                  {editingCriterionTarget ? 'የውጤት መመዘኛን ኤዲት አድርግ' : 'አዲስ የውጤት መመዘኛ ጨምር'}
+                </span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsCriterionModalOpen(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCriterionModal} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">
+                  የመመዘኛው ስም / ርዕስ (Criterion Label)
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="ለምሳሌ፦ ክፍል 1፣ ፈተና፣ አሳይመንት፣ ተግባር..."
+                  value={criterionFormLabel}
+                  onChange={(e) => setCriterionFormLabel(e.target.value)}
+                  className="w-full p-2.5 border rounded-xl bg-slate-50 border-slate-300 font-bold focus:ring-2 focus:ring-indigo-700 text-slate-900"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">
+                  የመመዘኛው ከፍተኛ ነጥብ / መቶኛ (Max Points / Weight %)
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    required
+                    value={criterionFormMax}
+                    onChange={(e) => setCriterionFormMax(Number(e.target.value) || 0)}
+                    className="w-full p-2.5 border rounded-xl bg-slate-50 border-slate-300 font-mono font-bold focus:ring-2 focus:ring-indigo-700 text-slate-900 text-base"
+                  />
+                  <span className="font-mono font-bold text-slate-600 text-sm">%</span>
+                </div>
+              </div>
+
+              {/* Quick Percentage Chips */}
+              <div>
+                <span className="block text-[11px] font-bold text-slate-500 mb-1.5">ፈጣን የመቶኛ ምርጫዎች፦</span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {[10, 15, 20, 25, 30, 40, 50, 60, 100].map((pct) => (
+                    <button
+                      key={pct}
+                      type="button"
+                      onClick={() => setCriterionFormMax(pct)}
+                      className={`px-2 py-1 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${
+                        criterionFormMax === pct
+                          ? 'bg-indigo-700 text-white border-indigo-700'
+                          : 'bg-slate-100 hover:bg-indigo-50 text-slate-700 border-slate-200'
+                      }`}
+                    >
+                      {pct}%
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t">
+                <button
+                  type="button"
+                  onClick={() => setIsCriterionModalOpen(false)}
+                  className="px-4 py-2 border rounded-xl hover:bg-slate-100 font-bold text-slate-700 cursor-pointer"
+                >
+                  ሰርዝ
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-700 hover:bg-indigo-800 text-white font-bold rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{editingCriterionTarget ? 'ለውጦችን መዝግብ' : 'መመዘኛውን ጨምር'}</span>
                 </button>
               </div>
             </form>

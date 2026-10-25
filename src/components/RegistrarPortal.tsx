@@ -223,23 +223,32 @@ export const RegistrarPortal: React.FC<RegistrarPortalProps> = ({
   const degreeCount = students.filter(s => s.program === 'Degree').length;
   const diplomaCount = students.filter(s => s.program === 'Diploma').length;
 
-  // Export all students' roster + GPA as CSV
-  const handleExportRosterCSV = () => {
-    let csv = `\uFEFFተ.ቁ,መለያ ቁጥር (ID),የተማሪ ሙሉ ስም,ጾታ,ፕሮግራም,የሴሚስተር GPA (${currentYear} ዓ.ም)\n`;
+  // Export all students' roster + GPA as CSV (including UID, Name, Program, etc.)
+  const handleExportRosterCSV = (exportAll = true) => {
+    const listToExport = exportAll ? students : filteredStudents;
+    let csv = `\uFEFFተ.ቁ,UID (የተማሪ ዩኒክ መለያ),የተማሪ ሙሉ ስም,መለያ ቁጥር (ID),ፕሮግራም,ጾታ,የትምህርት ዓመት,የገቡበት ዓመት,የምረቃ ሁኔታ,ስልክ ቁጥር,የሴሚስተር GPA (${currentYear} ዓ.ም)\n`;
 
-    filteredStudents.forEach((s, idx) => {
+    sortStudentsByAmharicName(listToExport).forEach((s, idx) => {
       const gpa = calculateStudentGPA(s, courses, grades, currentYear, currentSemester);
-      csv += `${idx + 1},"${s.id}","${s.name}","${s.gender}","${s.program}",${gpa}\n`;
+      const studyYear = s.currentStudyYear ? `${s.currentStudyYear}ኛ ዓመት` : '1ኛ ዓመት';
+      const admissionYr = s.admissionYear ? `${s.admissionYear} ዓ.ም` : '—';
+      const statusText =
+        s.graduationStatus === 'GRADUATED'
+          ? 'የተመረቀ (Graduated)'
+          : s.graduationStatus === 'CANDIDATE'
+          ? 'ተማራቂ (Candidate)'
+          : 'በመማር ላይ (Active)';
+      csv += `${idx + 1},"${s.uid}","${s.name}","${s.id}","${s.program}","${s.gender || 'ወንድ'}","${studyYear}","${admissionYr}","${statusText}","${s.phone || '—'}",${gpa}\n`;
     });
 
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `የተማሪዎች_ስም_ዝርዝር_${currentYear}_${currentSemester}.csv`;
+    link.download = `የተማሪዎች_ስም_ዝርዝር_Student_List_${currentYear}.csv`;
     link.click();
     URL.revokeObjectURL(url);
-    showNotify('የተማሪዎች ስም ዝርዝርና ውጤት በCSV ፋይል ወርዷል!', 'success');
+    showNotify(`የ${listToExport.length} ተማሪዎች ዝርዝር መረጃ (UID, Name, Program) በCSV ፋይል በስኬት ወርዷል!`, 'success');
   };
 
   // Export comprehensive master grade sheet for all courses
@@ -390,12 +399,13 @@ export const RegistrarPortal: React.FC<RegistrarPortalProps> = ({
           </button>
 
           <button
-            onClick={handleExportRosterCSV}
+            type="button"
+            onClick={() => handleExportRosterCSV(true)}
             className="bg-slate-800 hover:bg-slate-900 text-white text-xs px-3.5 py-2.5 rounded-xl font-bold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
-            title="የተማሪዎችን ስም ዝርዝር አውርድ"
+            title="የተማሪዎችን ሙሉ መረጃ (UID, Name, Program) በ CSV ፋይል አውርድ (Download Student List)"
           >
             <Download className="w-4 h-4 text-emerald-400" />
-            <span>ስም ዝርዝር (CSV)</span>
+            <span>የተማሪዎች ዝርዝር አውርድ (CSV)</span>
           </button>
         </div>
       </div>
