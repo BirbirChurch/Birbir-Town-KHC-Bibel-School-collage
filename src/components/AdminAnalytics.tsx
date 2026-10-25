@@ -89,7 +89,11 @@ export const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({
   // 2. Main Grade Distribution Analytics & Recharts Data
   const analyticsData = useMemo(() => {
     const gradeCounts: Record<string, number> = {
-      'A+': 0, 'A': 0, 'B+': 0, 'B': 0, 'C+': 0, 'C': 0, 'D': 0, 'F': 0
+      'A+': 0, 'A': 0, 'A-': 0,
+      'B+': 0, 'B': 0, 'B-': 0,
+      'C+': 0, 'C': 0, 'C-': 0,
+      'D+': 0, 'D': 0, 'D-': 0,
+      'F': 0
     };
 
     let totalScoreSum = 0;
@@ -162,14 +166,9 @@ export const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({
           const letter = eff.letter;
           if (gradeCounts[letter] !== undefined) {
             gradeCounts[letter]++;
-          } else if (letter === 'A+') gradeCounts['A+']++;
-          else if (letter === 'A') gradeCounts['A']++;
-          else if (letter === 'B+') gradeCounts['B+']++;
-          else if (letter === 'B') gradeCounts['B']++;
-          else if (letter === 'C+') gradeCounts['C+']++;
-          else if (letter === 'C') gradeCounts['C']++;
-          else if (letter === 'D') gradeCounts['D']++;
-          else gradeCounts['F']++;
+          } else {
+            gradeCounts['F']++;
+          }
 
           cGradeCounts[letter] = (cGradeCounts[letter] || 0) + 1;
 
@@ -206,16 +205,21 @@ export const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({
       });
     });
 
-    // Bar chart data for A+, A, B+, B, C+, C, D, F grade distribution
+    // Bar chart data for all 13 official grade distribution tiers
     const letterGradeBarData = [
-      { grade: 'A+', ተማሪዎች_ብዛት: gradeCounts['A+'], range: '90–100%', fill: '#059669', desc: 'እጅግ በጣም ممتاز' },
-      { grade: 'A',  ተማሪዎች_ብዛት: gradeCounts['A'],  range: '85–89%',  fill: '#10b981', desc: 'በጣም ممتاز' },
-      { grade: 'B+', ተማሪዎች_ብዛት: gradeCounts['B+'], range: '80–84%',  fill: '#2563eb', desc: 'በጣም ጥሩ' },
-      { grade: 'B',  ተማሪዎች_ብዛት: gradeCounts['B'],  range: '75–79%',  fill: '#6366f1', desc: 'ጥሩ' },
-      { grade: 'C+', ተማሪዎች_ብዛት: gradeCounts['C+'], range: '70–74%',  fill: '#f59e0b', desc: 'ደህና' },
-      { grade: 'C',  ተማሪዎች_ብዛት: gradeCounts['C'],  range: '65–69%',  fill: '#d97706', desc: 'መካከለኛ' },
-      { grade: 'D',  ተማሪዎች_ብዛት: gradeCounts['D'],  range: '60–64%',  fill: '#ea580c', desc: 'ዝቅተኛ' },
-      { grade: 'F',  ተማሪዎች_ብዛት: gradeCounts['F'],  range: '<60%',    fill: '#dc2626', desc: 'ወድቋል' }
+      { grade: 'A+', ተማሪዎች_ብዛት: gradeCounts['A+'], range: '97–100%', fill: '#047857', desc: 'እጅግ በጣም ጥሩ' },
+      { grade: 'A',  ተማሪዎች_ብዛት: gradeCounts['A'],  range: '93–96%',  fill: '#059669', desc: 'በጣም ጥሩ' },
+      { grade: 'A-', ተማሪዎች_ብዛት: gradeCounts['A-'], range: '90–92%',  fill: '#10b981', desc: 'በጣም ጥሩ' },
+      { grade: 'B+', ተማሪዎች_ብዛት: gradeCounts['B+'], range: '87–89%',  fill: '#1d4ed8', desc: 'ጥሩ' },
+      { grade: 'B',  ተማሪዎች_ብዛት: gradeCounts['B'],  range: '83–86%',  fill: '#2563eb', desc: 'ጥሩ' },
+      { grade: 'B-', ተማሪዎች_ብዛት: gradeCounts['B-'], range: '80–82%',  fill: '#3b82f6', desc: 'ደህና' },
+      { grade: 'C+', ተማሪዎች_ብዛት: gradeCounts['C+'], range: '77–79%',  fill: '#d97706', desc: 'አጥጋቢ' },
+      { grade: 'C',  ተማሪዎች_ብዛት: gradeCounts['C'],  range: '73–76%',  fill: '#f59e0b', desc: 'አልፏል' },
+      { grade: 'C-', ተማሪዎች_ብዛት: gradeCounts['C-'], range: '70–72%',  fill: '#fbbf24', desc: 'ዝቅተኛ ማለፊያ' },
+      { grade: 'D+', ተማሪዎች_ብዛት: gradeCounts['D+'], range: '67–69%',  fill: '#ea580c', desc: 'ዝቅተኛ' },
+      { grade: 'D',  ተማሪዎች_ብዛት: gradeCounts['D'],  range: '63–66%',  fill: '#f97316', desc: 'ዝቅተኛ / ማለፊያ' },
+      { grade: 'D-', ተማሪዎች_ብዛት: gradeCounts['D-'], range: '60–62%',  fill: '#fb923c', desc: 'ዝቅተኛ' },
+      { grade: 'F',  ተማሪዎች_ብዛት: gradeCounts['F'],  range: '0–59%',   fill: '#dc2626', desc: 'ወድቋል' }
     ];
 
     // Pie chart data for Pass vs Fail
@@ -400,7 +404,7 @@ export const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({
           <div>
             <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2">
               <BarChart3 className="w-5 h-5 text-purple-700" />
-              <span>የፊደል ውጤቶች ስርጭት ባር ግራፍ (Grade Distribution: A+, A, B+, B, C+, C, D, F)</span>
+              <span>የፊደል ውጤቶች ስርጭት ባር ግራፍ (13-Tier Official Grade Distribution: A+ to F)</span>
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
               የተመረጠው ኮርስ/ሴሚስተር/ፕሮግራም፦ {selectedCourseId === 'ALL' ? 'ሁሉም ኮርሶች' : courses.find(c => c.id === selectedCourseId)?.name}
@@ -461,7 +465,7 @@ export const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({
         </div>
 
         {/* Grade Breakdown Color Chips */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 pt-3 border-t text-xs">
+        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 lg:grid-cols-13 gap-1.5 pt-3 border-t text-xs">
           {analyticsData.letterGradeBarData.map((g) => (
             <div
               key={g.grade}

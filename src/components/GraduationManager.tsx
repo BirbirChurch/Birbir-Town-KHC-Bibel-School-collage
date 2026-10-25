@@ -52,7 +52,7 @@ import {
   getInitial2018HistoricalCourses
 } from '../data/curriculumCourses.ts';
 import { CourseGradeReportPdfModal } from './CourseGradeReportPdfModal.tsx';
-import { PRELOADED_TEACHERS } from '../data/initialData.ts';
+import { OFFICIAL_GRADING_SCALE, PRELOADED_TEACHERS } from '../data/initialData.ts';
 
 interface GraduationManagerProps {
   students: Student[];
@@ -173,6 +173,7 @@ export const GraduationManager: React.FC<GraduationManagerProps> = ({
   const [editingCriterionTarget, setEditingCriterionTarget] = useState<AssessmentCriterionItem | null>(null);
   const [criterionFormLabel, setCriterionFormLabel] = useState('');
   const [criterionFormMax, setCriterionFormMax] = useState<number>(20);
+  const [showGradingScaleRef, setShowGradingScaleRef] = useState(true);
 
   // Helper to persist updated criteria on selected course
   const updateGradCourseCriteria = (newItems: AssessmentCriterionItem[]) => {
@@ -1379,6 +1380,64 @@ export const GraduationManager: React.FC<GraduationManagerProps> = ({
                   </div>
                 </div>
 
+                {/* 13-Tier Official Grading Scale Reference Legend Card */}
+                <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-3.5 shadow-2xs space-y-2.5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 bg-indigo-100 text-indigo-700 rounded-lg">
+                        <Sparkles className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-800">
+                          ይፋዊ የውጤት አሰጣጥ መመሪያ (Official 13-Tier Grading Scale)
+                        </h4>
+                        <p className="text-[11px] text-slate-500">
+                          ለ2018 ተመራቂዎች የጸደቀው 13ቱም የውጤት ደረጃዎች (ከ A+ እስከ F)፣ የመቶኛ ወሰን እና የነጥብ መጠን
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowGradingScaleRef((prev) => !prev)}
+                      className="text-xs font-bold text-indigo-700 hover:text-indigo-900 bg-white border border-indigo-200 px-3 py-1 rounded-xl cursor-pointer shadow-2xs transition-all self-start sm:self-auto"
+                    >
+                      {showGradingScaleRef ? 'መመሪያውን ደብቅ (Hide)' : '13ቱንም ደረጃዎች አሳይ (View All 13 Tiers)'}
+                    </button>
+                  </div>
+
+                  {showGradingScaleRef && (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 lg:grid-cols-13 gap-1.5 pt-2 border-t border-slate-200/80">
+                      {OFFICIAL_GRADING_SCALE.map((tier) => (
+                        <div
+                          key={tier.letter}
+                          className={`p-2 rounded-xl border text-center transition-all ${
+                            tier.letter.startsWith('A')
+                              ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950'
+                              : tier.letter.startsWith('B')
+                              ? 'bg-blue-50/90 border-blue-300 text-blue-950'
+                              : tier.letter.startsWith('C')
+                              ? 'bg-amber-50/90 border-amber-300 text-amber-950'
+                              : tier.letter.startsWith('D')
+                              ? 'bg-orange-50/90 border-orange-300 text-orange-950'
+                              : 'bg-rose-50/90 border-rose-300 text-rose-950'
+                          }`}
+                        >
+                          <div className="text-sm font-black tracking-tight">{tier.letter}</div>
+                          <div className="text-[11px] font-bold font-mono">
+                            {tier.min}–{tier.max}%
+                          </div>
+                          <div className="text-[10px] font-semibold opacity-90">
+                            {tier.points.toFixed(2)} pts
+                          </div>
+                          <div className="text-[9px] truncate mt-0.5 opacity-75 font-medium" title={tier.desc}>
+                            {tier.desc}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 {/* Score Input Table */}
                 <div className="overflow-x-auto border border-slate-200 rounded-2xl max-h-[520px] overflow-y-auto">
                   <table className="w-full text-left text-xs text-slate-600">
@@ -1492,17 +1551,14 @@ export const GraduationManager: React.FC<GraduationManagerProps> = ({
                                 value={g.customLetter || (eff.hasAny ? eff.letter : '—')}
                                 onChange={(e) => handleCustomLetterChange(s.uid, e.target.value)}
                                 className="px-1 py-1 text-center font-black text-xs border border-amber-300 rounded-lg bg-white shadow-2xs text-amber-900 focus:ring-2 focus:ring-amber-600 cursor-pointer"
-                                title="የውጤት ፊደል ደረጃ"
+                                title="ይፋዊ 13ቱ የውጤት ፊደል ደረጃዎች"
                               >
                                 <option value="—">—</option>
-                                <option value="A+">A+</option>
-                                <option value="A">A</option>
-                                <option value="B+">B+</option>
-                                <option value="B">B</option>
-                                <option value="C+">C+</option>
-                                <option value="C">C</option>
-                                <option value="D">D</option>
-                                <option value="F">F</option>
+                                {OFFICIAL_GRADING_SCALE.map((tier) => (
+                                  <option key={tier.letter} value={tier.letter}>
+                                    {tier.letter} ({tier.min}–{tier.max}%, {tier.points.toFixed(2)} pts)
+                                  </option>
+                                ))}
                               </select>
                             </td>
 

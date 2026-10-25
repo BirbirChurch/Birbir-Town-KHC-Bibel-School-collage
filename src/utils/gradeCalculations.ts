@@ -84,7 +84,8 @@ export function getCourseAssessmentConfig(course?: Course): CourseAssessmentConf
 
 export function calculateGradeDetails(score: number): GradeDetail {
   const num = Math.min(100, Math.max(0, Math.round((Number(score) || 0) * 10) / 10));
-  const grade = OFFICIAL_GRADING_SCALE.find(g => num >= g.min && num <= g.max) 
+  const rounded = Math.round(num);
+  const grade = OFFICIAL_GRADING_SCALE.find(g => rounded >= g.min && rounded <= g.max) 
     || OFFICIAL_GRADING_SCALE[OFFICIAL_GRADING_SCALE.length - 1];
   
   return {

@@ -5,6 +5,7 @@ import { calculateGradeDetails, getCourseAssessmentItems, getEffectiveGradeValue
 import { getCurriculumForStudent } from '../data/curriculumCourses.ts';
 import { CHURCH_LOGO } from '../assets/logo.ts';
 import { downloadElementAsPdf, printElementDirectly } from '../utils/pdfExport.ts';
+import { OFFICIAL_GRADING_SCALE } from '../data/initialData.ts';
 
 interface GraduationTranscriptModalProps {
   student: Student;
@@ -515,15 +516,19 @@ export const GraduationTranscriptModal: React.FC<GraduationTranscriptModalProps>
           </div>
 
           {/* Grading System Reference Legend */}
-          <div className="border border-slate-300 rounded-xl p-3 mb-6 bg-slate-50 text-[10px] text-slate-600 avoid-break">
-            <p className="font-bold text-slate-800 mb-1">የትምህርት ውጤት መስፈርት መመሪያ (Approved Grading Scale):</p>
-            <div className="flex flex-wrap gap-x-4 gap-y-1">
-              <span>90% – 100%: <strong>A+ (4.00)</strong> - እጅግ በጣም ጥሩ</span>
-              <span>80% – 89%: <strong>A (3.75)</strong> - በጣም ጥሩ</span>
-              <span>70% – 79%: <strong>B (3.00)</strong> - ጥሩ</span>
-              <span>60% – 69%: <strong>C (2.00)</strong> - አልፏል</span>
-              <span>50% – 59%: <strong>D (1.00)</strong> - ዝቅተኛ / ማለፊያ</span>
-              <span>ከ 50% በታች: <strong>F (0.00)</strong> - ወድቋል</span>
+          <div className="border border-slate-300 rounded-xl p-3 mb-6 bg-slate-50 text-[10px] text-slate-700 avoid-break">
+            <div className="flex items-center justify-between mb-1.5 border-b border-slate-200 pb-1">
+              <span className="font-bold text-slate-900">የትምህርት ውጤት መስፈርት ይፋዊ መመሪያ (Official 13-Tier Grading Scale):</span>
+              <span className="text-[9px] text-slate-500 font-medium">13ቱም የውጤት ደረጃዎች (ከ A+ እስከ F)</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 lg:grid-cols-13 gap-1.5 text-[9.5px]">
+              {OFFICIAL_GRADING_SCALE.map((tier) => (
+                <div key={tier.letter} className="bg-white px-1.5 py-1 rounded border border-slate-200 text-center">
+                  <span className="font-black text-slate-900 block">{tier.letter}</span>
+                  <span className="text-slate-600 font-mono text-[9px] block">{tier.min}–{tier.max}%</span>
+                  <span className="text-slate-500 font-bold text-[8.5px] block">{tier.points.toFixed(2)} pts</span>
+                </div>
+              ))}
             </div>
           </div>
 

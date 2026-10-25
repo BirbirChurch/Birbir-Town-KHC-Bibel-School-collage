@@ -86,12 +86,11 @@ export const CourseGradeReportPdfModal: React.FC<CourseGradeReportPdfModalProps>
   let totalScoreSum = 0;
   let gradedCount = 0;
   const gradeDistribution: Record<string, number> = {
-    'A+': 0,
-    A: 0,
-    B: 0,
-    C: 0,
-    D: 0,
-    F: 0
+    'A+': 0, 'A': 0, 'A-': 0,
+    'B+': 0, 'B': 0, 'B-': 0,
+    'C+': 0, 'C': 0, 'C-': 0,
+    'D+': 0, 'D': 0, 'D-': 0,
+    'F': 0
   };
 
   enrolled.forEach((s) => {
@@ -102,16 +101,15 @@ export const CourseGradeReportPdfModal: React.FC<CourseGradeReportPdfModalProps>
       gradedCount++;
       if (gradeDistribution[eff.letter] !== undefined) {
         gradeDistribution[eff.letter]++;
+      } else {
+        // Fallback for custom or unmapped letters
+        gradeDistribution[eff.letter] = (gradeDistribution[eff.letter] || 0) + 1;
       }
     }
   });
 
   const classAverage = gradedCount > 0 ? (totalScoreSum / gradedCount).toFixed(1) : '0.0';
-  const passCount =
-    (gradeDistribution['A+'] || 0) +
-    (gradeDistribution['A'] || 0) +
-    (gradeDistribution['B'] || 0) +
-    (gradeDistribution['C'] || 0);
+  const passCount = gradedCount - (gradeDistribution['F'] || 0);
   const passRate = gradedCount > 0 ? ((passCount / gradedCount) * 100).toFixed(0) : '0';
 
   const logoSrc = churchLogo || CHURCH_LOGO;
@@ -524,26 +522,23 @@ export const CourseGradeReportPdfModal: React.FC<CourseGradeReportPdfModalProps>
 
                       {/* Grade Distribution Badges */}
                       <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-slate-100 rounded-xl text-xs">
-                        <span className="font-bold text-slate-700 text-[11px]">የውጤት ክፍፍል (Grade Distribution):</span>
-                        <div className="flex flex-wrap items-center gap-2 font-mono text-[11px]">
-                          <span className="bg-white px-2 py-0.5 rounded border border-slate-300">
-                            A+: <strong>{gradeDistribution['A+']}</strong>
-                          </span>
-                          <span className="bg-white px-2 py-0.5 rounded border border-slate-300">
-                            A: <strong>{gradeDistribution['A']}</strong>
-                          </span>
-                          <span className="bg-white px-2 py-0.5 rounded border border-slate-300">
-                            B: <strong>{gradeDistribution['B']}</strong>
-                          </span>
-                          <span className="bg-white px-2 py-0.5 rounded border border-slate-300">
-                            C: <strong>{gradeDistribution['C']}</strong>
-                          </span>
-                          <span className="bg-white px-2 py-0.5 rounded border border-slate-300">
-                            D: <strong>{gradeDistribution['D']}</strong>
-                          </span>
-                          <span className="bg-white px-2 py-0.5 rounded border border-slate-300">
-                            F: <strong>{gradeDistribution['F']}</strong>
-                          </span>
+                        <span className="font-bold text-slate-700 text-[11px]">የውጤት ክፍፍል (13-Tier Grade Distribution):</span>
+                        <div className="flex flex-wrap items-center gap-1.5 font-mono text-[10px]">
+                          {(['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'F'] as const).map((gradeKey) => {
+                            const count = gradeDistribution[gradeKey] || 0;
+                            return (
+                              <span
+                                key={gradeKey}
+                                className={`px-1.5 py-0.5 rounded border ${
+                                  count > 0
+                                    ? 'bg-white font-black border-indigo-400 text-indigo-950 shadow-2xs'
+                                    : 'bg-slate-50 font-normal border-slate-200 text-slate-400'
+                                }`}
+                              >
+                                {gradeKey}: <strong>{count}</strong>
+                              </span>
+                            );
+                          })}
                         </div>
                       </div>
 
