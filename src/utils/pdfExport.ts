@@ -34,85 +34,8 @@ export async function downloadElementAsPdf(
     const scale = options.scale || 2;
     const a4PixelWidth = orientation === 'landscape' ? 1120 : 800;
 
-    // Capture element with html2canvas (strictly allowTaint: false to prevent SecurityError on toDataURL)
-    const canvas = await html2canvas(element, {
-      scale,
-      useCORS: true,
-      allowTaint: false,
-      backgroundColor: '#ffffff',
-      logging: false,
-      windowWidth: a4PixelWidth,
-      onclone: (clonedDoc, clonedElement) => {
-        // Ensure cloned element is styled to perfect A4 paper width and fully expanded
-        clonedElement.style.overflow = 'visible';
-        clonedElement.style.maxHeight = 'none';
-        clonedElement.style.height = 'auto';
-        clonedElement.style.width = `${a4PixelWidth}px`;
-        clonedElement.style.maxWidth = `${a4PixelWidth}px`;
-        clonedElement.style.minWidth = `${a4PixelWidth}px`;
-        clonedElement.style.margin = '0 auto';
-        clonedElement.style.backgroundColor = '#ffffff';
+    const pageBlocks = Array.from(element.querySelectorAll<HTMLElement>('.pdf-page-block'));
 
-        // 1. Expand all overflow scroll containers so no table or row is clipped
-        const overflowBoxes = clonedElement.querySelectorAll('.overflow-x-auto, .overflow-y-auto, .overflow-auto');
-        overflowBoxes.forEach((box) => {
-          (box as HTMLElement).style.overflow = 'visible';
-          (box as HTMLElement).style.maxHeight = 'none';
-          (box as HTMLElement).style.maxWidth = '100%';
-        });
-
-        // 2. Ensure all tables auto-fit within the container width
-        const tables = clonedElement.querySelectorAll('table');
-        tables.forEach((tbl) => {
-          (tbl as HTMLElement).style.width = '100%';
-          (tbl as HTMLElement).style.maxWidth = '100%';
-          (tbl as HTMLElement).style.tableLayout = 'auto';
-        });
-
-        // 3. Ensure student names, IDs, and crucial column headers do NOT wrap vertically
-        const cells = clonedElement.querySelectorAll('th, td');
-        cells.forEach((c) => {
-          const text = c.textContent || '';
-          if (
-            c.classList.contains('whitespace-nowrap') ||
-            c.classList.contains('student-name') ||
-            text.includes('ስም') ||
-            text.includes('መለያ') ||
-            text.includes('ID') ||
-            text.length <= 25
-          ) {
-            (c as HTMLElement).style.whiteSpace = 'nowrap';
-            (c as HTMLElement).style.wordBreak = 'keep-all';
-          } else {
-            (c as HTMLElement).style.whiteSpace = 'normal';
-            (c as HTMLElement).style.wordBreak = 'break-word';
-          }
-        });
-
-        // Clean any SVG images that might taint canvas by converting to base64 if needed
-        const images = clonedElement.querySelectorAll('img');
-        images.forEach((img) => {
-          img.crossOrigin = 'anonymous';
-          const src = img.getAttribute('src') || '';
-          if (src.startsWith('data:image/svg+xml;utf8,')) {
-            // Convert unencoded svg data uri to base64 data uri to avoid browser tainting
-            try {
-              const svgContent = decodeURIComponent(src.replace('data:image/svg+xml;utf8,', ''));
-              const b64 = btoa(unescape(encodeURIComponent(svgContent)));
-              img.src = `data:image/svg+xml;base64,${b64}`;
-            } catch (_) {}
-          }
-        });
-
-        // Hide no-print items
-        const noPrintItems = clonedElement.querySelectorAll('.no-print');
-        noPrintItems.forEach((el) => {
-          (el as HTMLElement).style.display = 'none';
-        });
-      }
-    });
-
-    const imgData = canvas.toDataURL('image/jpeg', 0.95);
     const pdf = new jsPDF({
       orientation,
       unit: 'mm',
@@ -120,26 +43,101 @@ export async function downloadElementAsPdf(
       compress: true
     });
 
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
+    if (pageBlocks.length > 0) {
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
 
-    // Canvas aspect ratio calculations in mm
-    const imgWidth = pageWidth;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      for (let i = 0; i < pageBlocks.length; i++) {
+        const block = pageBlocks[i];
+        const canvas = await html2canvas(block, {
+          scale,
+          useCORS: true,
+          allowTaint: false,
+          backgroundColor: '#ffffff',
+          logging: false,
+          windowWidth: a4PixelWidth,
+          onclone: (clonedDoc, clonedElement) => {
+            clonedElement.style.overflow = 'visible';
+            clonedElement.style.maxHeight = 'none';
+            clonedElement.style.height = 'auto';
+            clonedElement.style.width = `${a4PixelWidth}px`;
+            clonedElement.style.maxWidth = `${a4PixelWidth}px`;
+            clonedElement.style.minWidth = `${a4PixelWidth}px`;
+            clonedElement.style.margin = '0 auto';
+            clonedElement.style.backgroundColor = '#ffffff';
 
-    let heightLeft = imgHeight;
-    let position = 0;
+            const overflowBoxes = clonedElement.querySelectorAll('.overflow-x-auto, .overflow-y-auto, .overflow-auto');
+            overflowBoxes.forEach((box) => {
+              (box as HTMLElement).style.overflow = 'visible';
+              (box as HTMLElement).style.maxHeight = 'none';
+            });
 
-    // First page
-    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
-    heightLeft -= pageHeight;
+            const tables = clonedElement.querySelectorAll('table');
+            tables.forEach((tbl) => {
+              (tbl as HTMLElement).style.width = '100%';
+              (tbl as HTMLElement).style.tableLayout = 'auto';
+            });
 
-    // Additional pages if the content exceeds 1 page
-    while (heightLeft > 2) {
-      position = -(imgHeight - heightLeft);
-      pdf.addPage();
-      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
-      heightLeft -= pageHeight;
+            const cells = clonedElement.querySelectorAll('th, td');
+            cells.forEach((c) => {
+              const text = c.textContent || '';
+              if (
+                c.classList.contains('whitespace-nowrap') ||
+                c.classList.contains('student-name') ||
+                text.includes('ስም') ||
+                text.includes('መለያ') ||
+                text.includes('ID') ||
+                text.length <= 25
+              ) {
+                (c as HTMLElement).style.whiteSpace = 'nowrap';
+                (c as HTMLElement).style.wordBreak = 'keep-all';
+              }
+            });
+
+            const images = clonedElement.querySelectorAll('img');
+            images.forEach((img) => {
+              img.crossOrigin = 'anonymous';
+            });
+
+            const noPrintItems = clonedElement.querySelectorAll('.no-print');
+            noPrintItems.forEach((el) => {
+              (el as HTMLElement).style.display = 'none';
+            });
+          }
+        });
+
+        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+        if (i > 0) {
+          pdf.addPage();
+        }
+        const blockRatio = canvas.height / canvas.width;
+        const blockHeightInMm = pageWidth * blockRatio;
+        const renderHeight = Math.min(pageHeight, blockHeightInMm);
+        pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, renderHeight, undefined, 'FAST');
+      }
+
+      try {
+        pdf.save(safeName);
+      } catch (saveErr) {
+        console.warn('pdf.save failed, falling back to Blob download:', saveErr);
+        const blob = pdf.output('blob');
+        const blobUrl = URL.createObjectURL(blob);
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.href = blobUrl;
+        downloadAnchor.download = safeName;
+        downloadAnchor.style.display = 'none';
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+
+        setTimeout(() => {
+          if (downloadAnchor.parentNode) {
+            document.body.removeChild(downloadAnchor);
+          }
+          URL.revokeObjectURL(blobUrl);
+        }, 2000);
+      }
+
+      return true;
     }
 
     // Try standard jsPDF save first, with direct blob fallback for iframe/webview environments

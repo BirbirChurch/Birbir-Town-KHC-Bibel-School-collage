@@ -15,6 +15,10 @@ import {
   Upload,
   Save,
   GraduationCap,
+  Key,
+  Eye,
+  Check,
+  Copy,
   EyeOff,
   Lock,
   ShieldAlert
@@ -28,6 +32,7 @@ import { exportCourseGradesToExcel, exportMasterSemesterGradeSheetToExcel } from
 import { GraduationManager } from './GraduationManager.tsx';
 import { MasterGradeReportPdfModal } from './MasterGradeReportPdfModal.tsx';
 import { StudentCredentialsModal } from './StudentCredentialsModal.tsx';
+import { StudentJsonImportModal } from './StudentJsonImportModal.tsx';
 import { sortStudentsByAmharicName } from '../utils/amharicSort.ts';
 import { DEFAULT_STUDENT_PASSKEYS, generateStudentPasskey } from '../data/initialData.ts';
 
@@ -90,6 +95,7 @@ export const RegistrarPortal: React.FC<RegistrarPortalProps> = ({
   const [genderFilter, setGenderFilter] = useState<'ALL' | 'ወንድ' | 'ሴት'>('ALL');
   const [yearFilter, setYearFilter] = useState<'ALL' | number>('ALL');
   const [showStudentCredentialsModal, setShowStudentCredentialsModal] = useState(false);
+  const [showJsonImportModal, setShowJsonImportModal] = useState(false);
   const [showStudentKeys, setShowStudentKeys] = useState<Record<string, boolean>>({});
   const [copiedPasskeyUid, setCopiedPasskeyUid] = useState<string | null>(null);
 
@@ -354,6 +360,16 @@ export const RegistrarPortal: React.FC<RegistrarPortalProps> = ({
               )}
             </div>
           )}
+
+          <button
+            type="button"
+            onClick={() => setShowJsonImportModal(true)}
+            className="bg-purple-900 hover:bg-purple-950 text-white text-xs px-3.5 py-2.5 rounded-xl font-bold shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+            title="ተማሪዎችን ከJSON ፋይል ጫን/አስገባ"
+          >
+            <Upload className="w-4 h-4 text-purple-300" />
+            <span>ተማሪዎችን ከJSON ጫን</span>
+          </button>
 
           <button
             onClick={onOpenAddStudent}
@@ -1072,6 +1088,32 @@ export const RegistrarPortal: React.FC<RegistrarPortalProps> = ({
           showNotify={showNotify}
           onSaveGrades={onSaveGrades}
           teachers={teachers}
+        />
+      )}
+
+      {/* Student JSON Import Modal */}
+      {showJsonImportModal && (
+        <StudentJsonImportModal
+          isOpen={showJsonImportModal}
+          onClose={() => setShowJsonImportModal(false)}
+          existingStudents={students}
+          currentYear={currentYear}
+          onUpdateStudents={onUpdateStudents}
+          showNotify={showNotify}
+        />
+      )}
+
+      {/* Student Passkeys & Credentials Modal */}
+      {showStudentCredentialsModal && (
+        <StudentCredentialsModal
+          students={students}
+          userPasswords={userPasswords}
+          churchLogo={churchLogo}
+          currentYear={currentYear}
+          currentSemester={currentSemester}
+          onClose={() => setShowStudentCredentialsModal(false)}
+          showNotify={showNotify}
+          onOpenPasswordModal={onOpenPasswordModal}
         />
       )}
 

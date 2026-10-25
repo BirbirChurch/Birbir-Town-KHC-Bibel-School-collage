@@ -205,305 +205,435 @@ export const CourseGradeReportPdfModal: React.FC<CourseGradeReportPdfModalProps>
           </div>
         </div>
 
-        {/* Printable Document Body (A4 Optimized) */}
+        {/* Printable Document Body (A4 Multi-Page Formatted) */}
         <div className="p-3 sm:p-6 bg-slate-100/60 overflow-x-auto max-h-[82vh] overflow-y-auto print:max-h-none print:overflow-visible print:p-0">
-          <div
-            id="printable-course-grade-report"
-            className={`p-6 sm:p-8 text-slate-900 bg-white a4-portrait-document official-certificate-border shadow-md mx-auto space-y-5 ${
-              isBwMode ? 'bw-mode-active' : ''
-            }`}
-          >
-            {/* Official Letterhead Header */}
-          <div className="border-b-2 border-slate-900 pb-4 relative">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <img
-                  src={logoSrc}
-                  alt="የብርብር ከተማ ቃለ ሕይወት ቤተ ክርስቲያን"
-                  className={`w-16 h-16 sm:w-20 sm:h-20 object-contain rounded-xl p-1 border border-slate-300 shadow-2xs ${
-                    isBwMode ? 'filter grayscale contrast-125' : ''
-                  }`}
-                />
-                <div>
-                  <h1 className="text-base sm:text-xl font-black text-slate-900 leading-tight">
-                    የብርብር ከተማ ቃለ ሕይወት ቤተ ክርስቲያን
-                  </h1>
-                  <h2 className="text-xs sm:text-sm font-bold text-emerald-900">
-                    መጽሐፍ ቅዱስ ትምህርት ቤት (Bible Theological School)
-                  </h2>
-                  <p className="text-[11px] text-slate-600 font-medium">
-                    የአካዳሚክ ዲን እና ሬጅስትራር ጽሕፈት ቤት
-                  </p>
-                </div>
-              </div>
+          <div id="printable-course-grade-report" className="space-y-8 mx-auto max-w-4xl">
+            {/* Determine if student count requires 2 pages (20 students per page) */}
+            {(() => {
+              const isMultiPage = enrolled.length > 18;
+              const page1Students = isMultiPage ? enrolled.slice(0, 20) : enrolled;
+              const page2Students = isMultiPage ? enrolled.slice(20) : [];
 
-              <div className="text-right text-[11px] text-slate-600 border-l border-slate-200 pl-4 space-y-0.5">
-                <p>
-                  <span className="font-bold">የትምህርት ዘመን፦</span> {currentYear} ዓ.ም (እንደ ኢትዮጵያ ዘመን አቆጣጠር)
-                </p>
-                <p>
-                  <span className="font-bold">ሴሚስተር፦</span>{' '}
-                  {selectedSemester === 'ALL' ? 'ሁሉም ሴሚስተሮች (All Semesters)' : `${selectedSemester}ኛ ሴሚስተር`}
-                </p>
-                <p className="text-emerald-800 font-bold">
-                  🇪🇹 የኢትዮጵያ ዘመን አቆጣጠር (ዓ.ም)
-                </p>
-              </div>
-            </div>
+              const renderStudentTable = (studentList: Student[], startIndex: number) => (
+                <div className="border border-slate-300 rounded-xl overflow-hidden">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead className="bg-slate-100 text-[10px] uppercase font-bold text-slate-800 border-b border-slate-300">
+                      <tr>
+                        <th className="p-2 border-r border-slate-300 text-center w-8 whitespace-nowrap">ተ.ቁ</th>
+                        <th className="p-2 border-r border-slate-300 w-28 whitespace-nowrap">መለያ ቁጥር (ID)</th>
+                        <th className="p-2 border-r border-slate-300 whitespace-nowrap min-w-[150px]">የተማሪ ሙሉ ስም</th>
+                        <th className="p-2 border-r border-slate-300 text-center w-12 whitespace-nowrap">ጾታ</th>
+                        {criteria.map((c) => (
+                          <th key={c.id} className="p-2 border-r border-slate-300 text-center min-w-[55px]">
+                            <span className="block truncate">{c.label}</span>
+                            <span className="text-[9px] font-mono font-black">({c.max}%)</span>
+                          </th>
+                        ))}
+                        <th className="p-2 border-r border-slate-300 text-center bg-emerald-100/70 font-black text-emerald-950 w-20">
+                          ድምር ({totalWeight}%)
+                        </th>
+                        <th className="p-2 border-r border-slate-300 text-center bg-amber-100/70 font-black text-amber-950 w-14">
+                          ደረጃ
+                        </th>
+                        <th className="p-2 border-r border-slate-300 text-center font-mono w-14">ነጥብ</th>
+                        <th className="p-2 text-center w-24">አስተያየት</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 text-slate-800">
+                      {studentList.map((student, idx) => {
+                        const g = resolveGradeBreakdown(grades, student.uid, course.id, currentYear, currentSemester, student.id);
+                        const eff = getEffectiveGradeValues(g, criteria);
 
-            <div className="mt-4 pt-3 border-t border-slate-200 text-center">
-              <h3 className="text-sm sm:text-base font-black tracking-wide uppercase text-slate-900">
-                ይፋዊ የኮርስ ውጤት ሪፖርት ማጠቃለያ ሰነድ (Official Course Grade Sheet)
-              </h3>
-            </div>
-          </div>
-
-          {/* Course & Instructor Metadata Table */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 border border-slate-200 p-3.5 rounded-2xl text-xs">
-            <div>
-              <span className="text-[10px] text-slate-500 font-bold block">የትምህርት ዓይነት (Course):</span>
-              <strong className="text-slate-900">
-                {course.code && <span className="text-indigo-800 font-mono mr-1">[{course.code}]</span>}
-                {course.name}
-              </strong>
-            </div>
-
-            <div>
-              <span className="text-[10px] text-slate-500 font-bold block">ፕሮግራም (Program):</span>
-              <strong className="text-emerald-800">{course.program}</strong>
-            </div>
-            <div>
-              <span className="text-[10px] text-slate-500 font-bold block">አስተማሪ / መምህር (Instructor):</span>
-              <strong className="text-slate-900">{course.teacher}</strong>
-            </div>
-            <div>
-              <span className="text-[10px] text-slate-500 font-bold block">ክሬዲት ሰዓት (Credits):</span>
-              <strong className="text-slate-900">{course.credits} Cr.Hr</strong>
-            </div>
-          </div>
-
-          {/* Criteria Breakdown Legend */}
-          <div className="bg-emerald-50/50 border border-emerald-200 p-2.5 rounded-xl text-[11px] text-slate-700 flex flex-wrap items-center justify-between gap-2">
-            <span className="font-bold text-emerald-950">የውጤት መመዘኛዎች መስፈርት፦</span>
-            <div className="flex flex-wrap items-center gap-2 font-mono">
-              {criteria.map((it, idx) => (
-                <span
-                  key={it.id}
-                  className="bg-white border border-emerald-300 px-2 py-0.5 rounded-lg text-emerald-900 font-bold"
-                >
-                  {it.label}: <strong className="text-slate-900">{it.max}%</strong>
-                </span>
-              ))}
-              <span className="bg-emerald-700 text-white px-2 py-0.5 rounded-lg font-black">
-                ድምር: {totalWeight}%
-              </span>
-            </div>
-          </div>
-
-          {/* Official Grades Table */}
-          <div className="border border-slate-300 rounded-xl overflow-hidden">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead className="bg-slate-100 text-[10px] uppercase font-bold text-slate-800 border-b border-slate-300">
-                <tr>
-                  <th className="p-2 border-r border-slate-300 text-center w-8 whitespace-nowrap">ተ.ቁ</th>
-                  <th className="p-2 border-r border-slate-300 w-28 whitespace-nowrap">መለያ ቁጥር (ID)</th>
-                  <th className="p-2 border-r border-slate-300 whitespace-nowrap min-w-[150px]">የተማሪ ሙሉ ስም</th>
-                  <th className="p-2 border-r border-slate-300 text-center w-12 whitespace-nowrap">ጾታ</th>
-                  {criteria.map((c) => (
-                    <th key={c.id} className="p-2 border-r border-slate-300 text-center min-w-[55px]">
-                      <span className="block truncate">{c.label}</span>
-                      <span className="text-[9px] font-mono font-black">({c.max}%)</span>
-                    </th>
-                  ))}
-                  <th className="p-2 border-r border-slate-300 text-center bg-emerald-100/70 font-black text-emerald-950 w-20">
-                    ድምር ({totalWeight}%)
-                  </th>
-                  <th className="p-2 border-r border-slate-300 text-center bg-amber-100/70 font-black text-amber-950 w-14">
-                    ደረጃ
-                  </th>
-                  <th className="p-2 border-r border-slate-300 text-center font-mono w-14">ነጥብ</th>
-                  <th className="p-2 text-center w-24">አስተያየት</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 text-slate-800">
-                {enrolled.map((student, idx) => {
-                  const g = resolveGradeBreakdown(grades, student.uid, course.id, currentYear, currentSemester, student.id);
-                  const eff = getEffectiveGradeValues(g, criteria);
-
-                  return (
-                    <tr key={student.uid} className="hover:bg-slate-50 transition-colors">
-                      <td className="p-2 border-r border-slate-200 text-center font-mono text-slate-500">
-                        {idx + 1}
-                      </td>
-                      <td className="p-2 border-r border-slate-200 font-mono font-bold text-slate-900 whitespace-nowrap">
-                        {student.id}
-                      </td>
-                      <td className="p-2 border-r border-slate-200 font-bold text-slate-900 whitespace-nowrap student-name">
-                        {student.name}
-                      </td>
-                      <td className="p-2 border-r border-slate-200 text-center text-slate-600">
-                        {student.gender || '—'}
-                      </td>
-
-                      {criteria.map((c, cIdx) => {
-                        const score = getCriterionScore(g, c.id, cIdx);
                         return (
-                          <td key={c.id} className="p-2 border-r border-slate-200 text-center font-mono font-bold">
-                            {score > 0 ? score : eff.hasAny ? '0' : '—'}
-                          </td>
+                          <tr key={student.uid} className="hover:bg-slate-50 transition-colors">
+                            <td className="p-2 border-r border-slate-200 text-center font-mono text-slate-500">
+                              {startIndex + idx + 1}
+                            </td>
+                            <td className="p-2 border-r border-slate-200 font-mono font-bold text-slate-900 whitespace-nowrap">
+                              {student.id}
+                            </td>
+                            <td className="p-2 border-r border-slate-200 font-bold text-slate-900 whitespace-nowrap student-name">
+                              {student.name}
+                            </td>
+                            <td className="p-2 border-r border-slate-200 text-center text-slate-600">
+                              {student.gender || '—'}
+                            </td>
+
+                            {criteria.map((c, cIdx) => {
+                              const score = getCriterionScore(g, c.id, cIdx);
+                              return (
+                                <td key={c.id} className="p-2 border-r border-slate-200 text-center font-mono font-bold">
+                                  {score > 0 ? score : eff.hasAny ? '0' : '—'}
+                                </td>
+                              );
+                            })}
+
+                            <td className="p-2 border-r border-slate-200 text-center font-mono font-black text-emerald-900 bg-emerald-50/30">
+                              {eff.hasAny ? eff.total : '—'}
+                            </td>
+                            <td className="p-2 border-r border-slate-200 text-center font-black text-amber-800 bg-amber-50/30">
+                              {eff.hasAny ? eff.letter : '—'}
+                            </td>
+                            <td className="p-2 border-r border-slate-200 text-center font-mono font-bold text-slate-700">
+                              {eff.hasAny ? eff.points.toFixed(2) : '—'}
+                            </td>
+                            <td className="p-2 text-center text-[11px] font-medium text-slate-600">
+                              {eff.hasAny
+                                ? eff.points >= 2.0
+                                  ? 'አልፏል (Pass)'
+                                  : 'ደካማ/ወድቋል'
+                                : 'ውጤት አልገባም'}
+                            </td>
+                          </tr>
                         );
                       })}
-
-                      <td className="p-2 border-r border-slate-200 text-center font-mono font-black text-emerald-900 bg-emerald-50/30">
-                        {eff.hasAny ? eff.total : '—'}
-                      </td>
-                      <td className="p-2 border-r border-slate-200 text-center font-black text-amber-800 bg-amber-50/30">
-                        {eff.hasAny ? eff.letter : '—'}
-                      </td>
-                      <td className="p-2 border-r border-slate-200 text-center font-mono font-bold text-slate-700">
-                        {eff.hasAny ? eff.points.toFixed(2) : '—'}
-                      </td>
-                      <td className="p-2 text-center text-[11px] font-medium text-slate-600">
-                        {eff.hasAny
-                          ? eff.points >= 2.0
-                            ? 'አልፏል (Pass)'
-                            : 'ደካማ/ወድቋል'
-                          : 'ውጤት አልገባም'}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Academic Summary Statistics */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 border border-slate-200 p-4 rounded-2xl text-xs">
-            <div>
-              <span className="text-[10px] text-slate-500 font-bold block">ተመዝጋቢ ተማሪዎች:</span>
-              <strong className="text-slate-900 text-sm font-mono">{enrolled.length}</strong> ተማሪዎች
-            </div>
-            <div>
-              <span className="text-[10px] text-slate-500 font-bold block">ውጤት የሞሉ (Graded):</span>
-              <strong className="text-emerald-800 text-sm font-mono">
-                {gradedCount} ({enrolled.length > 0 ? ((gradedCount / enrolled.length) * 100).toFixed(0) : 0}%)
-              </strong>
-            </div>
-            <div>
-              <span className="text-[10px] text-slate-500 font-bold block">የክፍሉ አማካይ ውጤት (Average):</span>
-              <strong className="text-slate-900 text-sm font-mono">{classAverage}%</strong>
-            </div>
-            <div>
-              <span className="text-[10px] text-slate-500 font-bold block">የማለፍ ምጣኔ (Pass Rate):</span>
-              <strong className="text-emerald-800 text-sm font-mono">{passRate}%</strong>
-            </div>
-          </div>
-
-          {/* Grade Distribution Badges */}
-          <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-slate-100 rounded-xl text-xs">
-            <span className="font-bold text-slate-700 text-[11px]">የውጤት ክፍፍል (Grade Distribution):</span>
-            <div className="flex flex-wrap items-center gap-2 font-mono text-[11px]">
-              <span className="bg-white px-2 py-0.5 rounded border border-slate-300">
-                A+: <strong>{gradeDistribution['A+']}</strong>
-              </span>
-              <span className="bg-white px-2 py-0.5 rounded border border-slate-300">
-                A: <strong>{gradeDistribution['A']}</strong>
-              </span>
-              <span className="bg-white px-2 py-0.5 rounded border border-slate-300">
-                B: <strong>{gradeDistribution['B']}</strong>
-              </span>
-              <span className="bg-white px-2 py-0.5 rounded border border-slate-300">
-                C: <strong>{gradeDistribution['C']}</strong>
-              </span>
-              <span className="bg-white px-2 py-0.5 rounded border border-slate-300">
-                D: <strong>{gradeDistribution['D']}</strong>
-              </span>
-              <span className="bg-white px-2 py-0.5 rounded border border-slate-300">
-                F: <strong>{gradeDistribution['F']}</strong>
-              </span>
-            </div>
-          </div>
-
-          {/* Official Signatures & Seal Section */}
-          <div className="pt-6 border-t-2 border-slate-900 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs text-slate-800 avoid-break">
-            {/* Instructor Signature */}
-            <div className="border border-slate-200 p-3.5 rounded-xl space-y-3 bg-white">
-              <span className="text-[10px] font-bold text-slate-500 block uppercase">
-                1. የመምህሩ ስምና ፊርማ (Instructor)
-              </span>
-              <div className="h-10 border-b border-dashed border-slate-300 flex items-end">
-                <span className="font-bold text-slate-900">{course.teacher}</span>
-              </div>
-              <div className="flex justify-between text-[10px] text-slate-500">
-                <span>ፊርማ: _______________</span>
-                <span>ቀን: ___________</span>
-              </div>
-            </div>
-
-            {/* Academic Dean Signature */}
-            <div className="border border-slate-200 p-3.5 rounded-xl space-y-3 bg-white">
-              <span className="text-[10px] font-bold text-slate-500 block uppercase">
-                2. የዋና ዲን ስምና ፊርማ (Academic Dean)
-              </span>
-              <div className="h-12 border-b border-dashed border-slate-300 flex items-end justify-between">
-                <span className="font-bold text-slate-900 text-xs">
-                  {officialConfig?.deanName || 'መ/ር ገላቲያ ድስታ'}
-                </span>
-                {officialConfig?.showDeanSignature && officialConfig.deanSignatureImage && (
-                  <img
-                    src={officialConfig.deanSignatureImage}
-                    alt="ዲን ፊርማ"
-                    className="h-10 w-auto object-contain max-w-[120px]"
-                  />
-                )}
-              </div>
-              <div className="flex justify-between text-[10px] text-slate-500">
-                <span>ፊርማ: {officialConfig?.showDeanSignature && officialConfig.deanSignatureImage ? '✓ ተረጋግጧል' : '_______________'}</span>
-                <span>ቀን: ___________</span>
-              </div>
-            </div>
-
-            {/* Registrar Office & Church Stamp */}
-            <div className="border border-slate-200 p-3.5 rounded-xl space-y-2 bg-white relative">
-              <span className="text-[10px] font-bold text-slate-500 block uppercase">
-                3. የሬጅስትራር ጽ/ቤት ማኅተም (Registrar Seal)
-              </span>
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="font-bold text-slate-900 block text-xs">
-                    {officialConfig?.registrarName || 'መ/ር አስራት አማኑኤል'}
-                  </span>
-                  <span className="text-[10px] text-slate-500">የሬጅስትራር ኃላፊ</span>
-                  {officialConfig?.showRegistrarSignature && officialConfig.registrarSignatureImage && (
-                    <img
-                      src={officialConfig.registrarSignatureImage}
-                      alt="ሬጅስትራር ፊርማ"
-                      className="h-8 w-auto object-contain mt-1"
-                    />
-                  )}
+                    </tbody>
+                  </table>
                 </div>
-                {/* Stamp: Enlarge, no circle border, clean display */}
-                {officialConfig?.showStamp !== false && (
-                  <div className="w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center opacity-95">
-                    <img
-                      src={
-                        officialConfig?.useChurchLogoAsStamp
-                          ? churchLogo || CHURCH_LOGO
-                          : officialConfig?.stampImage || churchLogo || CHURCH_LOGO
-                      }
-                      alt="ማኅተም"
-                      className="w-full h-full object-contain drop-shadow-sm select-none"
-                    />
+              );
+
+              return (
+                <>
+                  {/* PAGE 1 BLOCK */}
+                  <div
+                    className={`pdf-page-block p-6 sm:p-8 text-slate-900 bg-white a4-portrait-document official-certificate-border shadow-md mx-auto space-y-4 ${
+                      isBwMode ? 'bw-mode-active' : ''
+                    }`}
+                  >
+                    {/* Official Letterhead Header */}
+                    <div className="border-b-2 border-slate-900 pb-3 relative">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                          <img
+                            src={logoSrc}
+                            alt="የብርብር ከተማ ቃለ ሕይወት ቤተ ክርስቲያን"
+                            className={`w-16 h-16 sm:w-20 sm:h-20 object-contain rounded-xl p-1 border border-slate-300 shadow-2xs ${
+                              isBwMode ? 'filter grayscale contrast-125' : ''
+                            }`}
+                          />
+                          <div>
+                            <h1 className="text-base sm:text-xl font-black text-slate-900 leading-tight">
+                              የብርብር ከተማ ቃለ ሕይወት ቤተ ክርስቲያን
+                            </h1>
+                            <h2 className="text-xs sm:text-sm font-bold text-emerald-900">
+                              መጽሐፍ ቅዱስ ትምህርት ቤት (Bible Theological School)
+                            </h2>
+                            <p className="text-[11px] text-slate-600 font-medium">
+                              የአካዳሚክ ዲን እና ሬጅስትራር ጽሕፈት ቤት
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="text-right text-[11px] text-slate-600 border-l border-slate-200 pl-4 space-y-0.5">
+                          <p>
+                            <span className="font-bold">የትምህርት ዘመን፦</span> {currentYear} ዓ.ም
+                          </p>
+                          <p>
+                            <span className="font-bold">ሴሚስተር፦</span>{' '}
+                            {selectedSemester === 'ALL' ? 'ሁሉም ሴሚስተሮች' : `${selectedSemester}ኛ ሴሚስተር`}
+                          </p>
+                          <p className="text-emerald-800 font-bold">
+                            🇪🇹 የኢትዮጵያ ዘመን አቆጣጠር
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 pt-2 border-t border-slate-200 text-center">
+                        <h3 className="text-sm sm:text-base font-black tracking-wide uppercase text-slate-900">
+                          ይፋዊ የኮርስ ውጤት ሪፖርት ማጠቃለያ ሰነድ (Official Course Grade Sheet) {isMultiPage ? '— ገጽ 1' : ''}
+                        </h3>
+                      </div>
+                    </div>
+
+                    {/* Course & Instructor Metadata Table */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 border border-slate-200 p-3 rounded-2xl text-xs">
+                      <div>
+                        <span className="text-[10px] text-slate-500 font-bold block">የትምህርት ዓይነት (Course):</span>
+                        <strong className="text-slate-900">
+                          {course.code && <span className="text-indigo-800 font-mono mr-1">[{course.code}]</span>}
+                          {course.name}
+                        </strong>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] text-slate-500 font-bold block">ፕሮግራም (Program):</span>
+                        <strong className="text-emerald-800">{course.program}</strong>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-500 font-bold block">አስተማሪ / መምህር (Instructor):</span>
+                        <strong className="text-slate-900">{course.teacher}</strong>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-500 font-bold block">ክሬዲት ሰዓት (Credits):</span>
+                        <strong className="text-slate-900">{course.credits} Cr.Hr</strong>
+                      </div>
+                    </div>
+
+                    {/* Criteria Breakdown Legend */}
+                    <div className="bg-emerald-50/50 border border-emerald-200 p-2 rounded-xl text-[11px] text-slate-700 flex flex-wrap items-center justify-between gap-2">
+                      <span className="font-bold text-emerald-950">የውጤት መመዘኛዎች መስፈርት፦</span>
+                      <div className="flex flex-wrap items-center gap-2 font-mono">
+                        {criteria.map((it) => (
+                          <span
+                            key={it.id}
+                            className="bg-white border border-emerald-300 px-2 py-0.5 rounded-lg text-emerald-900 font-bold text-[10px]"
+                          >
+                            {it.label}: <strong className="text-slate-900">{it.max}%</strong>
+                          </span>
+                        ))}
+                        <span className="bg-emerald-700 text-white px-2 py-0.5 rounded-lg font-black text-[10px]">
+                          ድምር: {totalWeight}%
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Student Grades Table Page 1 */}
+                    {renderStudentTable(page1Students, 0)}
+
+                    {/* Single Page Stats & Signatures if <= 18 students */}
+                    {!isMultiPage && (
+                      <>
+                        {/* Summary Stats */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 border border-slate-200 p-3 rounded-2xl text-xs">
+                          <div>
+                            <span className="text-[10px] text-slate-500 font-bold block">ተመዝጋቢ ተማሪዎች:</span>
+                            <strong className="text-slate-900 text-sm font-mono">{enrolled.length}</strong> ተማሪዎች
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-slate-500 font-bold block">ውጤት የሞሉ (Graded):</span>
+                            <strong className="text-emerald-800 text-sm font-mono">
+                              {gradedCount} ({enrolled.length > 0 ? ((gradedCount / enrolled.length) * 100).toFixed(0) : 0}%)
+                            </strong>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-slate-500 font-bold block">የክፍሉ አማካይ ውጤት (Average):</span>
+                            <strong className="text-slate-900 text-sm font-mono">{classAverage}%</strong>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-slate-500 font-bold block">የማለፍ ምጣኔ (Pass Rate):</span>
+                            <strong className="text-emerald-800 text-sm font-mono">{passRate}%</strong>
+                          </div>
+                        </div>
+
+                        {/* Signatures */}
+                        <div className="pt-4 border-t-2 border-slate-900 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-slate-800 avoid-break">
+                          <div className="border border-slate-200 p-3 rounded-xl space-y-2 bg-white">
+                            <span className="text-[10px] font-bold text-slate-500 block uppercase">1. የመምህሩ ስምና ፊርማ</span>
+                            <div className="h-8 border-b border-dashed border-slate-300 flex items-end">
+                              <span className="font-bold text-slate-900">{course.teacher}</span>
+                            </div>
+                            <div className="flex justify-between text-[10px] text-slate-500">
+                              <span>ፊርማ: _______________</span>
+                              <span>ቀን: ___________</span>
+                            </div>
+                          </div>
+
+                          <div className="border border-slate-200 p-3 rounded-xl space-y-2 bg-white">
+                            <span className="text-[10px] font-bold text-slate-500 block uppercase">2. የዋና ዲን ስምና ፊርማ</span>
+                            <div className="h-8 border-b border-dashed border-slate-300 flex items-end justify-between">
+                              <span className="font-bold text-slate-900 text-xs">{officialConfig?.deanName || 'መ/ር ገላቲያ ድስታ'}</span>
+                              {officialConfig?.showDeanSignature && officialConfig.deanSignatureImage && (
+                                <img src={officialConfig.deanSignatureImage} alt="ዲን ፊርማ" className="h-7 w-auto object-contain" />
+                              )}
+                            </div>
+                            <div className="flex justify-between text-[10px] text-slate-500">
+                              <span>ፊርማ: {officialConfig?.showDeanSignature && officialConfig.deanSignatureImage ? '✓ ተረጋግጧል' : '_______________'}</span>
+                              <span>ቀን: ___________</span>
+                            </div>
+                          </div>
+
+                          <div className="border border-slate-200 p-3 rounded-xl space-y-2 bg-white relative">
+                            <span className="text-[10px] font-bold text-slate-500 block uppercase">3. የሬጅስትራር ጽ/ቤት ማኅተም</span>
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <span className="font-bold text-slate-900 block text-xs">{officialConfig?.registrarName || 'መ/ር አስራት አማኑኤል'}</span>
+                                <span className="text-[10px] text-slate-500">የሬጅስትራር ኃላፊ</span>
+                              </div>
+                              {officialConfig?.showStamp !== false && (
+                                <div className="w-20 h-20 flex items-center justify-center opacity-95">
+                                  <img
+                                    src={officialConfig?.useChurchLogoAsStamp ? churchLogo || CHURCH_LOGO : officialConfig?.stampImage || churchLogo || CHURCH_LOGO}
+                                    alt="ማኅተም"
+                                    className="w-full h-full object-contain select-none"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Page 1 Footer */}
+                    <div className="pt-2 border-t border-slate-200 flex justify-between items-center text-[10px] text-slate-500 font-bold">
+                      <span>የብርብር ከተማ ቃለ ሕይወት ቤተ ክርስቲያን መጽሐፍ ቅዱስ ትምህርት ቤት</span>
+                      <span>{isMultiPage ? 'ገጽ 1 ከ 2 (ቀጣዩ በገጽ 2 ይሰጥ)' : 'ገጽ 1 ከ 1 — ይፋዊ ሰነድ'}</span>
+                    </div>
                   </div>
-                )}
-              </div>
-              <div className="text-[10px] text-slate-500 pt-1">
-                <span>ቀን: _______________</span>
-              </div>
-            </div>
+
+                  {/* PAGE 2 BLOCK (When > 18 students) */}
+                  {isMultiPage && (
+                    <div
+                      className={`pdf-page-block break-before-page p-6 sm:p-8 text-slate-900 bg-white a4-portrait-document official-certificate-border shadow-md mx-auto space-y-4 ${
+                        isBwMode ? 'bw-mode-active' : ''
+                      }`}
+                    >
+                      {/* Continuation Header */}
+                      <div className="border-b-2 border-slate-900 pb-3 flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                          <img src={logoSrc} alt="ሎጎ" className="w-12 h-12 object-contain" />
+                          <div>
+                            <h2 className="text-sm sm:text-base font-black text-slate-900">
+                              የብርብር ከተማ ቃለ ሕይወት ቤተ ክርስቲያን መጽሐፍ ቅዱስ ትምህርት ቤት
+                            </h2>
+                            <p className="text-xs font-bold text-emerald-900">
+                              ይፋዊ የኮርስ ውጤት ሪፖርት ማጠቃለያ ሰነድ (ማጠቃለያ - ገጽ 2)
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right text-[10px] text-slate-600 font-bold">
+                          <p>ኮርስ፦ {course.name}</p>
+                          <p>መምህር፦ {course.teacher}</p>
+                        </div>
+                      </div>
+
+                      {/* Student Grades Table Page 2 */}
+                      {renderStudentTable(page2Students, 20)}
+
+                      {/* Academic Summary Statistics */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 border border-slate-200 p-3 rounded-2xl text-xs">
+                        <div>
+                          <span className="text-[10px] text-slate-500 font-bold block">ተመዝጋቢ ተማሪዎች:</span>
+                          <strong className="text-slate-900 text-sm font-mono">{enrolled.length}</strong> ተማሪዎች
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-slate-500 font-bold block">ውጤት የሞሉ (Graded):</span>
+                          <strong className="text-emerald-800 text-sm font-mono">
+                            {gradedCount} ({enrolled.length > 0 ? ((gradedCount / enrolled.length) * 100).toFixed(0) : 0}%)
+                          </strong>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-slate-500 font-bold block">የክፍሉ አማካይ ውጤት (Average):</span>
+                          <strong className="text-slate-900 text-sm font-mono">{classAverage}%</strong>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-slate-500 font-bold block">የማለፍ ምጣኔ (Pass Rate):</span>
+                          <strong className="text-emerald-800 text-sm font-mono">{passRate}%</strong>
+                        </div>
+                      </div>
+
+                      {/* Grade Distribution Badges */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-slate-100 rounded-xl text-xs">
+                        <span className="font-bold text-slate-700 text-[11px]">የውጤት ክፍፍል (Grade Distribution):</span>
+                        <div className="flex flex-wrap items-center gap-2 font-mono text-[11px]">
+                          <span className="bg-white px-2 py-0.5 rounded border border-slate-300">
+                            A+: <strong>{gradeDistribution['A+']}</strong>
+                          </span>
+                          <span className="bg-white px-2 py-0.5 rounded border border-slate-300">
+                            A: <strong>{gradeDistribution['A']}</strong>
+                          </span>
+                          <span className="bg-white px-2 py-0.5 rounded border border-slate-300">
+                            B: <strong>{gradeDistribution['B']}</strong>
+                          </span>
+                          <span className="bg-white px-2 py-0.5 rounded border border-slate-300">
+                            C: <strong>{gradeDistribution['C']}</strong>
+                          </span>
+                          <span className="bg-white px-2 py-0.5 rounded border border-slate-300">
+                            D: <strong>{gradeDistribution['D']}</strong>
+                          </span>
+                          <span className="bg-white px-2 py-0.5 rounded border border-slate-300">
+                            F: <strong>{gradeDistribution['F']}</strong>
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Official Signatures & Seal Section */}
+                      <div className="pt-4 border-t-2 border-slate-900 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-slate-800 avoid-break">
+                        {/* Instructor Signature */}
+                        <div className="border border-slate-200 p-3 rounded-xl space-y-2 bg-white">
+                          <span className="text-[10px] font-bold text-slate-500 block uppercase">
+                            1. የመምህሩ ስምና ፊርማ (Instructor)
+                          </span>
+                          <div className="h-8 border-b border-dashed border-slate-300 flex items-end">
+                            <span className="font-bold text-slate-900">{course.teacher}</span>
+                          </div>
+                          <div className="flex justify-between text-[10px] text-slate-500">
+                            <span>ፊርማ: _______________</span>
+                            <span>ቀን: ___________</span>
+                          </div>
+                        </div>
+
+                        {/* Academic Dean Signature */}
+                        <div className="border border-slate-200 p-3 rounded-xl space-y-2 bg-white">
+                          <span className="text-[10px] font-bold text-slate-500 block uppercase">
+                            2. የዋና ዲን ስምና ፊርማ (Academic Dean)
+                          </span>
+                          <div className="h-8 border-b border-dashed border-slate-300 flex items-end justify-between">
+                            <span className="font-bold text-slate-900 text-xs">
+                              {officialConfig?.deanName || 'መ/ር ገላቲያ ድስታ'}
+                            </span>
+                            {officialConfig?.showDeanSignature && officialConfig.deanSignatureImage && (
+                              <img
+                                src={officialConfig.deanSignatureImage}
+                                alt="ዲን ፊርማ"
+                                className="h-7 w-auto object-contain max-w-[110px]"
+                              />
+                            )}
+                          </div>
+                          <div className="flex justify-between text-[10px] text-slate-500">
+                            <span>ፊርማ: {officialConfig?.showDeanSignature && officialConfig.deanSignatureImage ? '✓ ተረጋግጧል' : '_______________'}</span>
+                            <span>ቀን: ___________</span>
+                          </div>
+                        </div>
+
+                        {/* Registrar Office & Church Stamp */}
+                        <div className="border border-slate-200 p-3 rounded-xl space-y-1.5 bg-white relative">
+                          <span className="text-[10px] font-bold text-slate-500 block uppercase">
+                            3. የሬጅስትራር ጽ/ቤት ማኅተም (Registrar Seal)
+                          </span>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className="font-bold text-slate-900 block text-xs">
+                                {officialConfig?.registrarName || 'መ/ር አስራት አማኑኤል'}
+                              </span>
+                              <span className="text-[10px] text-slate-500">የሬጅስትራር ኃላፊ</span>
+                              {officialConfig?.showRegistrarSignature && officialConfig.registrarSignatureImage && (
+                                <img
+                                  src={officialConfig.registrarSignatureImage}
+                                  alt="ሬጅስትራር ፊርማ"
+                                  className="h-7 w-auto object-contain mt-0.5"
+                                />
+                              )}
+                            </div>
+                            {officialConfig?.showStamp !== false && (
+                              <div className="w-20 h-20 flex items-center justify-center opacity-95">
+                                <img
+                                  src={
+                                    officialConfig?.useChurchLogoAsStamp
+                                      ? churchLogo || CHURCH_LOGO
+                                      : officialConfig?.stampImage || churchLogo || CHURCH_LOGO
+                                  }
+                                  alt="ማኅተም"
+                                  className="w-full h-full object-contain select-none"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Page 2 Footer */}
+                      <div className="pt-2 border-t border-slate-200 flex justify-between items-center text-[10px] text-slate-500 font-bold">
+                        <span>ይፋዊ የትምህርት ቤት ሰነድ (Official School Record)</span>
+                        <span>ገጽ 2 ከ 2 — ማጠቃለያና ማኅተም</span>
+                      </div>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
         </div>
-      </div>
     </div>
   </div>
 );
